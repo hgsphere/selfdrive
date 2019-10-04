@@ -1,0 +1,256 @@
+loaded module
+imported lib
+starting main
+pipeline created
+starting pipeline...
+pipeline started
+.
+    XWWWWWWWBn                                                 X
+    WWWWWWWWWWW                                                B
+    XWWWWWWWWWW                                                :
+    BWWWWWWWWWX                                                 
+      ..nBXWWWh                                                 
+            ::h:n:.                                             
+            hBnhhhXBnhn::                                       
+           .hnn:BBhXhBBXBn:                     ..              
+           hhhnhXhBBnBX:hX.               :XWWWWWWWWXn          
+           nnnhhBXhXBBhBB.            :nhXWWWWWWWWWWWWn         
+           hB:.hhhXnBXBX.         :BXWWWWWWWWWWWWWWWWWh         
+           hBnnBXBXXXXWB         Bhhn ..XWWWWWWWWWWWWW.         
+      .   :nX:nhhhBXXXX       nXX...  ::.nhWWWWWWWWWXB:.:       
+          .Xh:BXhBWBhW: ...           .: . BWWWXXBhBWWWhhBBB:.. 
+           BBhhBhWXBXn.hXnBX  ::      .BX. .hBXBB:        :nBXX.
+         .:nBBXXXXXWX hWBBn     .  :nn:nn.  nnnnhBXhBBh     .   
+           hBhBXhXXW:BXBBh     :X .h. .hWWBh.     .. hBh:.      
+          :hBnWXXBXB:nnh  :h    nn: .:.nXX  ..:n   :    nBBBn.  
+          :BXhXWWXBWWXBWn:h:nh..n:   .BXXWX: hWW:  :n        .n:
+         :.XhBB:nh:   :n:  .       .. .nn:.   . .  :.           
+           .                  nB           .   ::               
+                               :                                
+                                              .                 
+                                                                
+.
+    XWWWWWWWBn                                                BW
+    WWWWWWWWWWW                                               nB
+    XWWWWWWWWWW                                                n
+    BWWWWWWWWWX                                                 
+      .:nhBXWWW.                                                
+            .nBh::.                                             
+            :h:hB:XBnB.n:.                                      
+            :.::XnXXXXBXXh.                  .....              
+           nn:.hhnXBBhhBhX:               nXWWWWWWWWBn          
+         .   nn:WXnnBhXBB.            nnhXWWWWWWWWWWWWn         
+           hhnnBhBBBBhBXh         :BXWWWWWWWWWWWWWWWWWh         
+           .hh:BXBXBXXXX        .XBhh   BWWWWWWWWWWWWWn         
+      .   .nXn.hXhXXXXB       hXX...  :n.hBWWWWWWWWWWB::::nnnhn 
+          hnB.hXhXWXXXnX:.:n .::      .: : XWWWWWWWWWWWWWWWWWWWB
+           nBBhXBWXXW::nXhhX. hh      :hBn .BBBBXWWWWWWWWWWWWWWW
+         :.hXXWWXXXXX :  hX:::. :  :hnnhn.  :n::..:BXXWWWWWWWWWW
+      n.  .nnhBXBXWWhhWBBWWB.  :W  B  nBnnBB..Xh:nBnhBBh:BWWWWWW
+         .:nhhWWBWWhWBBXXWWWB:  hn. nh.nWXhBB::XWn.hXWWWWWXXWWWW
+          BBBhBWWX:WWWXWXXBhnnnh:n n .hn .hXBXXWWW :XWWWWWWWWWWX
+         ::hhnhBhBWXBBBBBhBhhn    .n: .n:n.  .  :: hnWh...::hXWX
+                  .           nn     ..  .     ::             ..
+                               .                                
+                                         n:                     
+                  n                               .            .
+.
+   nWWWWWWXh.                                                 BW
+   BWWWWWWWWW                                                 :h
+   XWWWWWWWWW:                                                 .
+   XWWWWWWWWW:                                                  
+      .:hBBXW.                                                  
+            :nhhn:.                                             
+            :BnnBhX:nn.n:                                       
+       ... .h:: BhXXXXXXBn.                  .....              
+           n..:nhhBXBBnnhX:               hXWWWWWWWWBn          
+        .. .nhB:XBh:BXWBB.            nhhXWWWWWWWWWWWWn         
+           hnn.nBhXXnBhXn         nBXWWWWWWWWWWWWWWWWWh         
+           .hn:BWXWXXBWB:. :n::..XXhn   BWWWWWWWWWWWWWn         
+          .nXn:BBXXWBBWBWWWWWWXWX...  :n.hBWWWWWWWWWWB::::nnnh: 
+          :nn :XhWBBBBnWWXXXXn .:     .: : XWWWXWWWWWWWWWWWWWWWh
+          :BXhnBhWhBWBXBn:BB. :.     .:hB: .hBXBXWWWWWWWWWWWWWWW
+         .nBBXWWWWXXB h..hB .:. :  :hnnhn.  nn::n::BXXXXWWWWWWWW
+      .   :hhBBhBXXWhnWnBWWB.  :W  B  nBnnBB. XB.nBnBBBn:BWWWWWW
+         .hnn:WWBXWhWhXXXWWWBn  hn. hB.nXXhBB::BWn:hXWWWWWXXWWWW
+   .      .BBnWXBXBWWWXWXXWhnh:nnn n .hn.nnBBXXWWW :XWWWWWWWWWWX
+     .     BBhhBhhWXBBBBhBhhhn    .n: .n:::  .  :. hhWh...::hXWX
+           n.             .   :h         .  .  ::             . 
+                               .                                
+      .                                  .                      
+      .                                                        .
+.
+   nWWWWWWh:                                                  XW
+   BWWWWWWWWB                                                 nX
+   WWWWWWWWWW.                                                 h
+   XXWWWWWWWW.                                                  
+      .nBhBXX                                                   
+            .:hn::.                                             
+            :B:hBnXh:Bnn:.                                      
+        n. .n:::BXXBWXnWWB:                  .....              
+           :n.:hXhXXBXB::X:               nXWWWWWWWWBn          
+           nn:h:XhXXXXBBB.            nnhXWWWWWWWWWWWWn         
+           nh:.BhXWXBXnhn         :BXWWWWWWWWWWWWWWWWWh         
+          .:nhhBWXXXXXWX:       .XBhh.  BWWWWWWWWWWWWWn         
+          :nBnnBBBXBXBBhhBXXWBhhB:::  :n.hBWWWWWWWWWWB::::nnnn: 
+          n:hhnBBXWXhnhWWXXWXBn       .: : XWWWWWWWWWWWWWWWWWWWh
+         .:BB.:XBWBWWnXXhhXB  ::     .:hB:. hBBBXWWWWWWWWWWWWWWW
+         :nnBBXWWhBWX h. hX ... :  :hnnhn   :n::n::BBXWXWWWWWWWW
+      :    nBhBXhWXWhhWhBWWB.  :W  B  nBnnBB..Xh.nBnBBBhnBWWWWWW
+          h:XhXWXXWhWBXXXWWWBn  hn. hh.nWXhBB.:XWn:hXWWWXWWXWWWW
+   ..     :hXBBXBBhWWWXWXXBhnnnhnn n .hn:nnBBXXWWW :WWWWWWWWWWWX
+         ..hBBBnnBWXBBBBBBBhBn    .n: .nnn:  .  :. hhWh...::hXWX
+                          .   :h         . ..  ::             . 
+                               .                                
+                                         :.                     
+                  :                                 .          :
+.
+    XWWWWWh:                                                  BW
+   .WWWWWWWWWn                                                nX
+    WWWWWWWWWW                                                 n
+   .XWWWWWWWWW                                                  
+      .:XXXXWB                                                  
+             hhnn:.                                             
+            nBnhBhXnhh:n:.                                      
+       .h   :::.XBBXWWBXXh:                  .....              
+            :::hBXBXBhn :X:               nXWWWWWWWWXn          
+           ::nB:WXBhXXBBX.            nnhXWWWWWWWWWWWWn         
+           nB:.BXhXXBWBXn         :BXWWWWWWWWWWWWWWWWWh         
+            n::hhBXXBBXB:       .XBhB   BWWWWWWWWWWWWWn         
+      .   .nXn:XhXXXXXXnWXXXWBhhBnh:  :n:hBWWWWWWWWWWB::::nnnn: 
+          hn:nhBXWWhXXhWWXXWXBn       .: : XWWWXWWWWWWWWWWWWWWWB
+           hBBhWhWXBWn:hXhnh  .:     .:hBn..hBBBXWWWWWWWWWWWWWWW
+          nhBXWWWBBWB : :XX.:.  :  :hnnhn.  :n:.:::BXXWWWWWWWWWW
+      n    :BBhBWWWWnhWhhWWB.  :W  h  nBnnBB. Xh.:BnBBBnnBWWWWWW
+          n:BnXWWWWBWhXXXWWWB:  hh: nh.nWXhhB:.XWn:hXWWWWWXXWWWW
+          .hWXXWXXhWWWXWXXXhn::::n : .hn.nhXBXXWWW :XWWWWWWWWWWX
+         n.BBnBhhhWXBBBBBBBhhn    .n: .nnn.  .  :. hnWh...::hXWX
+                           :  :h         .     n:             . 
+                               ...                              
+                                         :.                     
+                  n                                            .
+.
+   .WWWWWWB:                                                  BW
+   nWWWWWWWWW:                                                :X
+   hWWWWWWWWWB                                                 :
+   :XWWWWWWWWB                                                  
+      .:nBBXW:                                                  
+            .:nh::.                                             
+            nhnnBnX::Bn::.                                      
+        n   n.n:B:BBWXBXWB.                  .....              
+       .   : : nBnBBWn:.nX:               nXWWWWWWWWXn          
+           : :hnXXBBBBXXX.            nhhXWWWWWWWWWWWWn         
+           .B:.hhhXXhXhB:         :BXWWWWWWWWWWWWWWWWWh         
+           :BhnXBBXBWXXX:       .XXhh.  BWWWWWWWWWWWWWn         
+          :nXnXhhBWWWBBnXXWXWXhhhnn.  :n:hBWWWWWWWWWWB:::::nnn: 
+          :.BnhXhXWBXWhWWXXWXBn       :: : BWWWWWWWWWWWWWWWWWWWB
+          .nXBhWhWXXWn:hXnnh  ::      :BBn..BBBBXWWWWWWWWWWWWWWW
+          :nWBXXWXBWX : .nW::.. :  :hnnhn.  nn:::::BBXWXWWWWWWWW
+      .  . hBBnhXWWXnhWXBWWB.  :W  h  nBnnBB. Xh.:BnBXBhnBWWWWWW
+         .:BX:XWWWWhWBBBXWWWB.  hn: nh nWXhhB..XWn:hXWWWWWXXWWWW
+   .      hhBWWWXXhWWWXWXXWBn::::h n .hn :hBBXXWWW :XWWWWWWWWWWX
+         hnnXXXhnBWXBBBBBBBhhn    .n: .nnh:  .  :: hnWh...::hXWX
+           :              n   :n         . :   ::             . 
+                               ...                              
+                                         n.                     
+                                                               :
+.
+   :WWWWWXB:                                                  hW
+   hWWWWWWWWX                                                 nX
+   BWWWWWWWWWh                                                  
+   hWWWWWWWWWB                                                  
+      .:XXBXWn                                                  
+            .::h::.                                             
+            hhnnnnXhnh:::.                                      
+        n. .B.n.BnBXWhBWWB.                  .....              
+           ..:.hhnXXXn: hX:               nXWWWWWWWWBn          
+             :nnXBhBXXnXB             nhhXWWWWWWWWWWWWn         
+           nhhhhXhXXhB:hh         :BXWWWWWWWWWWWWWWWWWh         
+           .hnnBWBWWXBXB:       .XXhh . BWWWWWWWWWWWWWn         
+           :B:nBBXXWBBXnn:BXXXhBh:n:  :n.hBWWWWWWWWWWB::::nnnn: 
+          .hBhhXhXXWBhBWWBXWXBhn      :n : BWWWWWWWWWWWWWWWWWWWh
+          :hBBnhnWXXWhWWBBBWn ::     .:BXn .hBBBBWWWWWWWWWWWWWWW
+         :::BXXWWBXWX.Bn:hX   . :  nhnnhn   :n:. .:BBXWXWWWWWWWW
+      :    nBhn:BWXWhhWhBWWB.  :W  h  nBnnBB. XB.nBnBBBhnBWWWWWW
+          nhXhXXXWWhWBBXXWWWB:  nh. nh nXXnhB::XWn:hWWWWWWXXWWWW
+   :      hWXhXWXXhWWWXWWXXhn::::n n .h: :nBBXXWWW :XWWWWWWWWWWX
+         n.BhBXBnhWXBBBBBBBhBn    .n: .nnn.  .  :: hnWh...::hXWW
+           :              .   nB     :   .  .  nn             . 
+                               .               .                
+                                         .                      
+                  n                                            :
+.
+   nWWWWWWh                                                   BW
+   :WWWWWWWWn                                                 .B
+   XWWWWWWWWW.                                                 h
+   BXWWWWWWWWh                                                  
+      .:hhBXW:                                                  
+            :nhn::                                              
+            :hnhBhBn:::n:.                                      
+        .  .h.  BBBXWhXWBh.                  .....              
+           ..h.hBhXXhhB.BX:               nXWWWWWWWWBn          
+           ..hnnWBhBXXBXX.            nhhXWWWWWWWWWWWWn         
+           hh:nhhXWWnXWXh         :BXWWWWWWWWWWWWWWWWWh         
+            nB.hWXBWXBXB:       .XBhB.  BWWWWWWWWWWWWWn         
+          .nXh:BhBWWXXX:XhBXXBBXB...  :n.hBWWWWWWWWWWB::::nnnn: 
+          :hB:hXhXWBXXBWWXBWWhh:      .:.: BWWWXWWWWWWWWWWWWWWWB
+          :BBhnhBWhXXhXXhhXW. n:      :hXn..BBBBXWWWWWWWWWWWWWWW
+         hh.XBWWXXXXB h:.nX.  . :  :hnnhn.  nn:nn::hXWWWWWWWWWWW
+           hhhhhhWWWhhWXBWWB.  :W  B  nBnnBB. Xh.nBnBXBhnXWWWWWW
+          :hhnWWXXWBWhXXXWWWh:  hn. nn:nWWhBB.:XWnnhXWWWWWXXWWWW
+   :      BXXhXXXhnWWWXWXXBBnnnnnn n .hn:nhXBXWWWW :XWWWWWWWWWWX
+     .   n.XnhBBnhWXBBBBBBBhBn    .n: .nnn.  .  :: hnWh...::hXWX
+           n      .           :n               n:             . 
+                               .      .                         
+               .                         .                      
+                  :                               .            .
+.
+   nWWWWWXh                                                  .XW
+   BWWWWWWWWh                                                 nX
+   hWWWWWWWWWB                                                 :
+   nXWWWWWWWWX                                                  
+     ..nhBXXX:                                                  
+            nnhhn:.                                             
+            nB:BBXWhnB:n:.                                      
+      . n  :h::.BhBBWXhXXB.                  .....              
+           :: .nBBBXhBXnBX:               nXWWWWWWWWBn          
+           B:.nnWhhBBnhBX.            nhhXWWWWWWWWWWWWn         
+          .hh. BBBXXhBhXh         :BXWWWWWWWWWWWWWWWWWh         
+           nBB.hWXXXXBXX:       .XXhh   BWWWWWWWWWWWWWn         
+          .nW:.hhhBXXXX.XhXWXBBXB. .  :n.hBWWWWWWWWWWB::::nnnn: 
+          BhBnhXhWXBBBhWWXBWWhhn      .: : BWWWWWWWWWWWWWWWWWWWh
+          nhB.:.BWBBXnXXhnBX. n:     .:BBn..hBBBXWWWWWWWWWWWWWWW
+         .: XXWXWWWXB.hn.hX.. . :  :hnnhn.  nn:::::hBXWXWWWWWWWW
+     .:    :::BnhWWWhhWWBWWB.  :W  h  nBhnBB..XB.nBnBBBhnBWWWWWW
+          .hBnXWWWWBWBBBXWWWB:  hn. hh.nWWhhB:.XWn:hXWWWWWXXWWWW
+          nBXBXWXXhWWWXWWXXhn:nnnh h .hn:nhXBXWWWW :WWWWWWWWWWWX
+     :   :nBhnBBnhWBBBBBBBBhBn    .n: .nnn.  .. :: hnWh...::hXWX
+           .              :   .:     :.  . :   n:             . 
+                               .                                
+                                                                
+                  :                                            :
+.
+    hWWWWXh.                                                  BW
+    BWWWWWWWX.                                                nX
+    WWWWWWWWWW:                                                n
+    XWWWWWWWWWn                                                 
+      .:nBXXWW.                                                 
+            .:nhn:.                                             
+            .h:BBnn nhn.:                                       
+        h.  n:n BBBXWXXWWB.                  ....               
+           h:h :hnXBhBWnBX:               nXWWWWWWWWBn          
+           h.hnnWXBBWXXnX.            nnhXWWWWWWWWWWWWn         
+           n:hnhWBXBBBnnh         :BXWWWWWWWWWWWWWWWWWh         
+          :.nXnXWhXWXXhX:        XBBh.  BWWWWWWWWWWWWWn         
+      :   :nWnnhnXXBXhX:BhBBBBhBB::.  ::.hBWWWWWWWWWWB::::nnnn: 
+          .BB:hXXXWhBWBWWBBWWnhh       : : BWWWWWWWWWWWWWWWWWWWB
+          :nXXBXhXWXWBXXhnBX. ::     n:BB:  BBBBXWWWWWWWWWWWWWWW
+         :nhhXWWXWXXX.B:.hX.... :  :hnhhn.  nn::n::BBXWXWWWWWWWW
+      :    nhnBBBXWWhhWBBWWB.  :W  h  nBnnBB..Xh.nBnBBBhnBWWWWWW
+         .B:BnWWXBWBXXBBXWWWBn  nn. nB.nWWnhh::XWn.hXWWWWWXXWWWW
+          :XXBXXXXhWWWXWWXXBn::::h : :hn.nhXBXWWWW :XWWWWWWWWWWX
+           BBBXBnhWXBBBBBBBhhn    .n: .nnn:  .. :: nnWh...::hXWX
+                              :n      :  .     ::             . 
+                               ...    ..                        
+                                                                
+                  :                                            :
