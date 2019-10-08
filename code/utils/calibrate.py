@@ -1,3 +1,9 @@
+#!/usr/bin/python3
+
+print("Obsolete! Use /camera/calibrate.py")
+print("see /camera/testWarp.py for an example")
+return -1
+
 import os
 import sys
 import cv2 as cv
