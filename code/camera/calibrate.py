@@ -67,7 +67,7 @@ depChessPtsIdxs = [
 ]
 
 
-def getHomographyMatrix(type="color"):
+def getHomographyMatrix(type="color", inverse=False):
     if type == "color":
         rgbChessboardPts = getChessboardPoints((IMG_W, IMG_H), cols=8, rows=9, show=False)
         rgbChessPts = []
@@ -75,7 +75,10 @@ def getHomographyMatrix(type="color"):
         for p in rgbChessPtsIdxs:
             rgbChessPts.append(rgbChessboardPts[p[0]][p[1]])
 
-        hmg, status = cv.findHomography(np.array(rgbSrcPts), np.array(rgbChessPts))
+        if inverse:
+            hmg, status = cv.findHomography(np.array(rgbChessPts), np.array(rgbSrcPts))
+        else:
+            hmg, status = cv.findHomography(np.array(rgbSrcPts), np.array(rgbChessPts))
         return hmg
 
     elif type == "depth":
@@ -86,7 +89,10 @@ def getHomographyMatrix(type="color"):
         for p in depChessPtsIdxs:
             depChessPts.append(depChessboardPts[p[0]][p[1]])
 
-        hmg, status = cv.findHomography(np.array(depSrcPts), np.array(depChessPts))
+        if inverse:
+            hmg, status = cv.findHomography(np.array(depChessPts), np.array(depSrcPts))
+        else:
+            hmg, status = cv.findHomography(np.array(depSrcPts), np.array(depChessPts))
         return hmg
 
     else:
@@ -97,6 +103,7 @@ def getHomographyMatrix(type="color"):
 def getImg(dir, name, show=True):
     srcImg = cv.imread(os.path.join(dir, name))
     if show:
+        cv.circle(srcImg, (srcImg.shape[1] // 2, srcImg.shape[0]-10), 5, (0, 255, 0), 5)
         cv.imshow("src", srcImg)
         cv.waitKey(0)
 
@@ -109,7 +116,7 @@ def main():
     depDir = os.path.join(pathDir, "depth")
 
     rgbSrc = getImg(rgbDir, rgbSrcName)
-    hmg = getHomographyMatrix()
+    hmg = getHomographyMatrix("color")
     rgbOut = cv.warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
 
     cv.imshow("warpedRGB", rgbOut)
