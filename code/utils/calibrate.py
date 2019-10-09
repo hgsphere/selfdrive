@@ -1,14 +1,14 @@
+
+import sys
+import os
+import cv2 as cv
+import numpy as np
+from glob import glob
 #!/usr/bin/python3
 
 print("Obsolete! Use /camera/calibrate.py")
 print("see /camera/testWarp.py for an example")
-return -1
-
-import os
-import sys
-import cv2 as cv
-import numpy as np
-from glob import glob
+sys.exit(-1)
 
 # dimensions we're working with
 IMG_H = 480

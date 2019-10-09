@@ -6,6 +6,9 @@ import numpy as np
 sys.path.append(os.path.abspath("../utils/"))
 from makeChessboard import getChessboardPoints
 
+# help from
+# https://www.learnopencv.com/homography-examples-using-opencv-python-c/
+
 
 # dimensions we're working with
 IMG_H = 480
@@ -108,7 +111,7 @@ def main():
     rgbSrc = getImg(rgbDir, rgbSrcName)
     hmg = getHomographyMatrix()
     rgbOut = cv.warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
-    
+
     cv.imshow("warpedRGB", rgbOut)
     cv.waitKey(0)
 

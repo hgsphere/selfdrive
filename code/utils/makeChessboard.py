@@ -2,6 +2,9 @@ import cv2 as cv
 import numpy as np
 import pprint
 
+# help from
+# https://answers.opencv.org/question/27917/how-to-create-a-chess-board/
+
 
 def blackWhiteSwap(color):
     if color == 0:
