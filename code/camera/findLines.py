@@ -34,7 +34,8 @@ def cleanupImage(img):
     grayImg = newColorSpace(img, cNum=1)
     # displayImage("grayscale", grayImg)
     # threshold to only have white lines
-    threshWhite = cv.inRange(grayImg, 115, 255)
+    lowerBound = int(grayImg.max() - 30)
+    threshWhite = cv.inRange(grayImg, lowerBound, 255)
     # displayImage("gray thresh", threshWhite)
     smoothed2 = cv.GaussianBlur(threshWhite, (kSz, kSz), 0)
 
@@ -79,10 +80,9 @@ def within(x, target, threshold):
         return False
 
 
-def getLinesPoints(img, lines):
+def getLinesPoints(img, lines, debug=False):
     height = img.shape[0]
     width = img.shape[1]
-    img2 = np.zeros_like(img)
 
     # sort by x-intercept
     slopes = []
@@ -103,14 +103,16 @@ def getLinesPoints(img, lines):
     # histogram of x-intercepts
     x_intercepts = list(zip(*slopes))[1]
     # pp.pprint(x_intercepts)
-    hist, bins = np.histogram(x_intercepts)
+    binNum = 12
+    withinVal = width // binNum
+    hist, bins = np.histogram(x_intercepts, bins=12)
 
     histSort = hist.argsort()[-2:]
     binLanes = sorted([int(bins[x]) for x in histSort])
     lanes = []
 
     for l in binLanes:
-        slope = [x for x in slopes if within(x[1], l, 20)]
+        slope = [x for x in slopes if within(x[1], l, withinVal)]
         slopeList, intcList = list(zip(*slope))
         avgSlope = np.mean(np.asarray(slopeList))
         avgInt = int(np.mean(np.asarray(intcList)))
@@ -125,7 +127,10 @@ def getLinesPoints(img, lines):
         cv.line(imgColor, p0, p1, GREEN, 3)
 
     # displayImage("lanes", imgColor)
-    return lanes
+    if debug:
+        return lanes, imgColor
+    else:
+        return lanes
 
 
 def getContours(canny):
@@ -134,7 +139,6 @@ def getContours(canny):
     # remove contours with small area
 
     # contours = sorted(contours, key=cv.contourArea)
-    # cv.drawContours(cannyColor, contours, -1, (0, 255, 0), -1)
     rank = np.zeros((len(contours)))
     for i in range(0, len(contours)):
         rank[i] = contours[i].shape[0]
@@ -161,7 +165,7 @@ def getContours(canny):
         # if rArea < 200:
         #     continue
         # filter by shape
-        if rProportion < 2:
+        if rProportion < 3:
             continue
         approx.append(app)
         # print(rArea, rProportion)
@@ -176,16 +180,17 @@ def getContours(canny):
     return black
 
 
-def getHeading(leftP, rightP, img):
+def getHeading(leftPts, rightPts, img):
     width = img.shape[1]
     height = img.shape[0]
 
     # average of top x value of points
-    avgTopX = (leftP[1][0] + rightP[1][0]) // 2
+    avgTopX = (leftPts[1][0] + rightPts[1][0]) // 2
     avgTopY = 0
 
     # bottomX = width // 2
-    bottomX = 291   # actually?
+    # bottomX = 291   # according to transform
+    bottomX = (leftPts[0][0] + rightPts[0][0]) // 2
     bottomY = height
 
     # line equation
@@ -194,11 +199,18 @@ def getHeading(leftP, rightP, img):
 
     # make sure doesn't exceed image boundaries
     if avgTopX < 0:
-        avgTopY = int(b)
         avgTopX = 0
+        avgTopY = int(b)
     elif avgTopX > width:
-        avgTopY = int(m*width + b)
         avgTopX = width
+        avgTopY = int(m*width + b)
+
+    if bottomX < 0:
+        bottomX = 0
+        bottomY = int(b)
+    elif bottomX > width:
+        bottomX = width
+        bottomY = int(m*width + b)
 
     p0 = (bottomX, bottomY)
     p1 = (avgTopX, avgTopY)
@@ -227,22 +239,57 @@ def showHeading(line, img, orig, hmg):
 
 def displayImage(name, mat):
     cv.imshow(name, mat)
-    cv.waitKey(0)
+    return cv.waitKey(0)
 
 
-def printContour(img, con, i):
-    M = cv.moments(con)
-    try:
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
-    except ZeroDivisionError as e:
-        return
+def addImageQuadrant(bigImg, img, quadrant):
+    """addImageQuadrant
+    -------------
+    |  0  |  1  |
+    -------------
+    |  2  |  3  |
+    -------------
+    """
 
-    cv.putText(img, "#{}".format(i), (cX-20, cY), cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 255), 1)
-    return
+    # color convert
+    if len(img.shape) == 2:
+        img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+    # we know they are all 640 x 480
+    width = img.shape[1]
+    height = img.shape[0]
+    halfW = width // 2
+    halfH = height // 2
+
+    if quadrant == 0:
+        p0 = (0, 0)
+        p1 = (halfW, halfH)
+    elif quadrant == 1:
+        p0 = (halfW, 0)
+        p1 = (width, halfH)
+    elif quadrant == 2:
+        p0 = (0, halfH)
+        p1 = (halfW, height)
+    elif quadrant == 3:
+        p0 = (halfW, halfH)
+        p1 = (width, height)
+    else:
+        print("invalid quadrant!", file=sys.stderr)
+        return None
+
+    # subsample image
+    interp = cv.INTER_AREA
+    smallImg = cv.resize(img, (halfW, halfH), interpolation=interp)
+
+    # put on image
+    sys.stdout.flush()
+    bigImg[p0[1]:p1[1], p0[0]:p1[0]] = smallImg
+
+    return bigImg
 
 
-def parseImage(path, hmg, invh):
+def parseImage(path, hmg, invh, debug=False):
+    """parseImage"""
+
     # allow passing the image in directly
     if isinstance(path, str):
         img = cv.imread(path, cv.IMREAD_COLOR)
@@ -261,6 +308,12 @@ def parseImage(path, hmg, invh):
     smoothed = cleanupImage(warped)
     # displayImage("smoothed", smoothed)
 
+    # collage of images - original (w/ heading), smoothed, contours & canny, lanes
+    if debug:
+        collage = np.zeros_like(img)
+        collage = addImageQuadrant(collage, img, 0)
+        collage = addImageQuadrant(collage, smoothed, 1)
+
     try:
         # apply Canny edge detection
         canny = cv.Canny(smoothed, 100, 200)
@@ -269,19 +322,36 @@ def parseImage(path, hmg, invh):
         # contourImg = cv.cvtColor(cannyColor, cv.COLOR_BGR2GRAY)
 
         lines = houghLines(contourImg)
-        leftPoints, rightPoints = getLinesPoints(canny, lines)
+        points = getLinesPoints(canny, lines, debug=debug)
+        if debug:
+            points, laneImg = points
+            leftPoints, rightPoints = points
+        else:
+            leftPoints, rightPoints = points
 
         # average middle line
         target = getHeading(leftPoints, rightPoints, warped)
         overlay = showHeading(target, warped, img, invh)
 
-        return overlay
+        if debug:
+            collage = addImageQuadrant(collage, overlay, 0)
+            collage = addImageQuadrant(collage, contourImg, 2)
+            collage = addImageQuadrant(collage, laneImg, 3)
+            return collage
+        else:
+            return overlay
+
     except Exception as e:
-        return img
+        if not debug:
+            return img
+        else:
+            # print(e)
+            return collage
+
 
 
 def main():
-    imgDir = os.path.abspath("../../testimages/lanes/rgb")
+    imgDir = os.path.abspath("../../testimages/frames/rgb")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
@@ -289,7 +359,9 @@ def main():
     invh = getHomographyMatrix("color", inverse=True)
 
     for i in imgs:
-        parseImage(i, hmg, invh)
+        overlay = parseImage(i, hmg, invh, debug=True)
+        print(os.path.basename(i))
+        displayImage("overlay", overlay)
 
 
 if __name__ == '__main__':
