@@ -9,10 +9,19 @@ from findLines import parseImage, displayImage
 
 def main():
 
-    vid = cv.VideoCapture("../../testvideo/output-rgb.avi")
+    frameRate = 30
+    resolution = (640, 480)
 
-    out = cv.VideoWriter("../../testvideo/linefollow-output-rgb-debug.avi",
-                         cv.VideoWriter_fourcc('M','J','P','G'), 30, (640, 480))
+    # change this directory and name to change which video is processed
+    vidDir = "../../testvideo/clips"
+    vidName = "clip0.avi"
+    vidPath = os.path.join(vidDir, vidName)
+    vid = cv.VideoCapture(vidPath)
+
+    inName = vidName.split(".")
+    outName = inName[0] + "-debug.avi"
+    outPath = os.path.join(vidDir, outName)
+    out = cv.VideoWriter(outPath, cv.VideoWriter_fourcc('M','J','P','G'), frameRate, resolution)
 
     hmg = getHomographyMatrix("color")
     invh = getHomographyMatrix("color", inverse=True)

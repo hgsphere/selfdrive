@@ -1,12 +1,12 @@
 import os
 import sys
-import imutils
 import cv2 as cv
 import numpy as np
 from pprint import PrettyPrinter
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
+from contourPlus import contourPlus
 
 
 def newColorSpace(img, cNum=2):
@@ -59,7 +59,12 @@ def houghLines(img):
     for line in lines:
         for x1, y1, x2, y2 in line:
             # calculate the slope
-            slope = (y2-y1)/(x2-x1)
+            try:
+                slope = (y2-y1)/(x2-x1)
+            except RuntimeWarning:
+                # divide by 0 error
+                # TODO: I don't think check is working, but it doesn't crash
+                slope = 1000000
 
             # throw out shallow lines
             if abs(slope) < 0.3:
@@ -136,43 +141,27 @@ def getLinesPoints(img, lines, debug=False):
 def getContours(canny):
     cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
     contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    # remove contours with small area
 
-    # contours = sorted(contours, key=cv.contourArea)
-    rank = np.zeros((len(contours)))
-    for i in range(0, len(contours)):
-        rank[i] = contours[i].shape[0]
-    top = rank.argsort()
-    # displayImage("contours", cannyColor)
+    # get extra data about the contours
+    contours2 = [contourPlus(x) for x in contours]
+    # sort by the area
+    contours2.sort(key=lambda x: x.getArea(), reverse=True)
+    # for c in contours2:
+    #     print(c.getArea())
+    # get the average
+    mean = np.mean([c.getArea() for c in contours2])
+    # sd = np.std([c.getArea() for c in contours2])
+    # accept anything 1 standard deviation above the mean
+    if len(contours2) > 4:
+        contours3 = [c for c in contours2 if c.getArea() > mean]
+    else:
+        contours3 = [c for c in contours2 if c.getArea() > 200]
+    # get rid of anything with the wrong shape
+    contours4 = [c for c in contours3 if c.getProportion() > 2]
+    # polygon approximation
+    approx = [c.approx for c in contours4]
 
-    # return
-
-    # minAreaRect returns tuple of ((centerX, centerY), (width, height), angle)
-    approx = []
-    end = len(contours) if len(contours) < 4 else 4
-    for i in top[-end:]:
-        c = contours[top[i]]
-        app = cv.approxPolyDP(c, epsilon=0.1, closed=True)
-
-        rect = cv.minAreaRect(c)
-        rSize = rect[1]
-        rWidth, rHeight = rSize[0], rSize[1]
-        if (rWidth == 0) or (rHeight == 0):
-            continue
-        rProportion = max((rWidth / rHeight), (rHeight / rWidth))
-        # rArea = rSize[0] * rSize[1]
-        # # filter by area
-        # if rArea < 200:
-        #     continue
-        # filter by shape
-        if rProportion < 3:
-            continue
-        approx.append(app)
-        # print(rArea, rProportion)
-        # box = cv.boxPoints(rect)
-        # box = np.int0(box)
-        # cv.drawContours(cannyColor, [box], 0, (0, 0, 255), 2)
-
+    # display
     cv.drawContours(cannyColor, approx, -1, (0, 255, 0), 10)
     # displayImage("contours", cannyColor)
     black = np.zeros_like(canny)
@@ -347,7 +336,6 @@ def parseImage(path, hmg, invh, debug=False):
         else:
             # print(e)
             return collage
-
 
 
 def main():
