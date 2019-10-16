@@ -59,11 +59,9 @@ def houghLines(img):
     for line in lines:
         for x1, y1, x2, y2 in line:
             # calculate the slope
-            try:
+            if (x2 - x1) != 0:
                 slope = (y2-y1)/(x2-x1)
-            except RuntimeWarning:
-                # divide by 0 error
-                # TODO: I don't think check is working, but it doesn't crash
+            else:
                 slope = 1000000
 
             # throw out shallow lines
@@ -151,8 +149,8 @@ def getContours(canny):
     # get the average
     mean = np.mean([c.getArea() for c in contours2])
     # sd = np.std([c.getArea() for c in contours2])
-    # accept anything 1 standard deviation above the mean
     if len(contours2) > 4:
+        # accept anything above the mean
         contours3 = [c for c in contours2 if c.getArea() > mean]
     else:
         contours3 = [c for c in contours2 if c.getArea() > 200]
@@ -336,6 +334,7 @@ def parseImage(path, hmg, invh, debug=False):
         else:
             # print(e)
             return collage
+#     TODO: return the angle, warped back to original image
 
 
 def main():

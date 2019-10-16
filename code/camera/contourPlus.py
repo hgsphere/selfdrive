@@ -39,6 +39,12 @@ class contourPlus(object):
         return int0(boxPoints(self.rect))
 
 
+"""input needs to look like:
+[[457.97925 459.21854]
+ [141.96892 454.98624]
+ [143.08673 371.52353]
+ [459.09705 375.75583]]
+"""
 def warpPoints(pts, hmg):
     # reconstruct points
     newPoints = []
