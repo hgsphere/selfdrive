@@ -59,4 +59,10 @@ def warpPoints(pts, hmg):
     # change back to correct format
     origPts = int0([[p[0]] for p in warpedPts])
 
+    """return looks like
+    [[[363 467]]
+
+     [[659 323]]]
+    """
     return origPts
+

@@ -5,12 +5,16 @@ from datetime import datetime
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
-from findLines import parseImage, displayImage
+from findLines import parseImage, displayImage, showHeading
 from findStopLine import findStopLine, drawCrossBox, drawCrossLines
 
 
 def testLaneDetect(frame, hmg, invh, out, vidDir, i, debug=False):
-    overlay = parseImage(frame, hmg, invh, debug=debug)
+    target = parseImage(frame, hmg, invh, debug=debug)
+    if debug:
+        target, overlay = target
+    else:
+        overlay = showHeading(target, frame)
     out.write(overlay)
 
     # debugging stuff
@@ -18,8 +22,9 @@ def testLaneDetect(frame, hmg, invh, out, vidDir, i, debug=False):
         cv.imshow("frame", frame)
         keyVal = displayImage("overlay", overlay)
         if chr(keyVal & 255) == 's':
-            print("saving image")
-            cv.imwrite(os.path.join(vidDir, "frames/frame{}.jpeg".format(i)), frame)
+            pName = os.path.join(vidDir, "frames/frame{}.jpeg".format(i))
+            print("saving {}".format(pName))
+            cv.imwrite(pName, frame)
 
 
 def testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=False):
@@ -38,12 +43,14 @@ def testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=False):
     if debug:
         keyVal = displayImage("frame", frame)
         if chr(keyVal & 255) == 's':
-            print("saving image")
-            cv.imwrite(os.path.join(vidDir, "frames/frame{}.jpeg".format(i)), frame)
+            pName = os.path.join(vidDir, "frames/frame{}.jpeg".format(i))
+            print("saving {}".format(pName))
+            cv.imwrite(pName, frame)
 
 
 def testAll(frame, hmg, invh, out, vidDir, i):
-    overlay = parseImage(frame, hmg, invh)
+    target = parseImage(frame, hmg, invh)
+    overlay = showHeading(target, frame)
     crossbox, crossLines = findStopLine(frame, hmg, invh)
 
     if crossbox is not None:
@@ -63,12 +70,12 @@ def main():
     resolution = (640, 480)
 
     # change this directory and name to change which video is processed
-    if test == "lanes" or test == "stopLines":
+    if test == "lanes":
         vidDir = "../../testvideo"
         vidName = "output-rgb.avi"
-    # elif test == "stopLines":
-    #     vidDir = "../../testvideo/stopLines"
-    #     vidName = "stopLine6.avi"
+    elif test == "stopLines":
+        vidDir = "../../testvideo/stopLines"
+        vidName = "stopLine6.avi"
     elif test == "all":
         vidDir = "../../testvideo"
         vidName = "output-rgb.avi"
@@ -79,7 +86,7 @@ def main():
     vid = cv.VideoCapture(vidPath)
 
     inName = vidName.split(".")
-    outName = inName[0] + "-debug.avi"
+    outName = inName[0] + "-debug2.avi"
     outPath = os.path.join(vidDir, outName)
     out = cv.VideoWriter(outPath, cv.VideoWriter_fourcc('M','J','P','G'), frameRate, resolution)
 
@@ -87,13 +94,14 @@ def main():
     invh = getHomographyMatrix("color", inverse=True)
 
     i = 0
+    dbg = False
     # for i in range(60):
     while True:
         ret, frame = vid.read()
 
         if ret:
             if test == "lanes":
-                testLaneDetect(frame, hmg, invh, out, vidDir, i, debug=True)
+                testLaneDetect(frame, hmg, invh, out, vidDir, i, debug=dbg)
             elif test == "stopLines":
                 testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=False)
             elif test == "all":
@@ -101,6 +109,11 @@ def main():
             else:
                 break
             i += 1
+            # if i == (7*frameRate):
+            #     dbg = True
+            # elif i == (8*frameRate):
+            #     dbg = False
+            #     cv.destroyAllWindows()
 
         else:
             break

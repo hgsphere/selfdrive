@@ -6,7 +6,7 @@ from pprint import PrettyPrinter
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
-from contourPlus import contourPlus
+from contourPlus import contourPlus, warpPoints
 
 
 def newColorSpace(img, cNum=2):
@@ -113,9 +113,11 @@ def getLinesPoints(img, lines, debug=False):
     histSort = hist.argsort()[-2:]
     binLanes = sorted([int(bins[x]) for x in histSort])
     lanes = []
+    weights = []
 
     for l in binLanes:
         slope = [x for x in slopes if within(x[1], l, withinVal)]
+        weights.append(len(slope))
         slopeList, intcList = list(zip(*slope))
         avgSlope = np.mean(np.asarray(slopeList))
         avgInt = int(np.mean(np.asarray(intcList)))
@@ -129,6 +131,7 @@ def getLinesPoints(img, lines, debug=False):
     for p0, p1 in lanes:
         cv.line(imgColor, p0, p1, GREEN, 3)
 
+    # print(lanes)
     # displayImage("lanes", imgColor)
     if debug:
         return lanes, imgColor
@@ -206,19 +209,17 @@ def getHeading(leftPts, rightPts, img):
     return p0, p1
 
 
-def showHeading(line, img, orig, hmg):
+# doesn't do any transformations
+def showHeading(line, orig):
+    if line is None:
+        return orig
+
     p0, p1 = line
 
-    cv.line(img, p0, p1, (0, 0, 255), 3)
-    # displayImage("heading", img)
-
-    justLine = np.zeros_like(img)
+    justLine = np.zeros_like(orig)
     cv.line(justLine, p0, p1, (0, 0, 255), 3)
 
-    fixed = cv.warpPerspective(justLine, hmg, (img.shape[1], img.shape[0]))
-    # displayImage("fixed", fixed)
-
-    overlay = cv.addWeighted(orig, 1.0, fixed, beta=0.95, gamma=0.0)
+    overlay = cv.addWeighted(orig, 1.0, justLine, beta=0.95, gamma=0.0)
     # displayImage("overlay", overlay)
 
     return overlay
@@ -274,8 +275,48 @@ def addImageQuadrant(bigImg, img, quadrant):
     return bigImg
 
 
+# example input of too close
+# [[(505, 480), (147, 0)], [(518, 480), (283, 0)]]
+def fixLaneData(img, leftLane, rightLane):
+    width = img.shape[1]
+    withinVal = width // 12
+    midPt = width // 2
+    # estimates for average lane width
+    bottomLaneWidth = 250
+    topLaneWidth = 350
+    # unpack
+    lP0, lP1 = leftLane
+    rP0, rP1 = rightLane
+
+    # if they are the same thing, or too close together,
+    #  then we need to invent the other side by estimating
+    #  the width of the lane
+
+    if leftLane == rightLane:
+        pass
+    elif within(lP0[0], rP0[0], withinVal):
+        pass
+    else:
+        return leftLane, rightLane
+
+    # closer to which side?
+    if lP0[0] > midPt:
+        # create new left lane
+        leftLane = [(rP0[0]-bottomLaneWidth, rP0[1]), (rP1[0]-topLaneWidth, rP1[1])]
+        # print("new left lane")
+    elif rP0[0] < midPt:
+        # create new right lane
+        rightLane = [(lP0[0] + bottomLaneWidth, lP0[1]), (lP1[0] + topLaneWidth, lP1[1])]
+        # print("new right lane")
+
+    return leftLane, rightLane
+
+
 def parseImage(path, hmg, invh, debug=False):
-    """parseImage"""
+    """parseImage
+    returns the line that describes the target to follow
+    if debug is True, returns tuple that contains target and collage image
+    """
 
     # allow passing the image in directly
     if isinstance(path, str):
@@ -316,29 +357,39 @@ def parseImage(path, hmg, invh, debug=False):
         else:
             leftPoints, rightPoints = points
 
+        # print("original lanes: {}, {}".format(leftPoints, rightPoints))
+        leftLane, rightLane = fixLaneData(canny, leftPoints, rightPoints)
+        # print("new lanes: {}, {}".format(leftLane, rightLane))
+        # sys.stdout.flush()
+
         # average middle line
-        target = getHeading(leftPoints, rightPoints, warped)
-        overlay = showHeading(target, warped, img, invh)
+        target = getHeading(leftLane, rightLane, warped)
+        ot = warpPoints(target, invh)
+        # restructure
+        origTarget = ((ot[0][0][0], ot[0][0][1]), (ot[1][0][0], ot[1][0][1]))
+        # print(origTarget)
 
         if debug:
+            overlay = showHeading(origTarget, img)
             collage = addImageQuadrant(collage, overlay, 0)
             collage = addImageQuadrant(collage, contourImg, 2)
             collage = addImageQuadrant(collage, laneImg, 3)
-            return collage
+            return origTarget, collage
         else:
-            return overlay
+            return origTarget
 
     except Exception as e:
+        # raise e
         if not debug:
-            return img
+            return None
         else:
             # print(e)
-            return collage
-#     TODO: return the angle, warped back to original image
+            return None, collage
 
 
 def main():
-    imgDir = os.path.abspath("../../testimages/frames/rgb")
+    # imgDir = os.path.abspath("../../testimages/frames/rgb")
+    imgDir = os.path.abspath("../../testvideo/frames")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
@@ -346,8 +397,10 @@ def main():
     invh = getHomographyMatrix("color", inverse=True)
 
     for i in imgs:
-        overlay = parseImage(i, hmg, invh, debug=True)
+        # if not "frame418" in i:
+        #     continue
         print(os.path.basename(i))
+        target, overlay = parseImage(i, hmg, invh, debug=True)
         displayImage("overlay", overlay)
 
 
