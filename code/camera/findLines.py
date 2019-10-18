@@ -49,6 +49,8 @@ def houghLines(img):
         img, rho=1, theta=np.pi / 180,
         threshold=20, minLineLength=20, maxLineGap=200
     )
+    if lines is None or len(lines) == 0:
+        return None
 
     color = [255, 0, 0]
     thickness = 1
@@ -117,6 +119,10 @@ def getLinesPoints(img, lines, debug=False):
 
     for l in binLanes:
         slope = [x for x in slopes if within(x[1], l, withinVal)]
+        if not slope:
+            slope = [x for x in slopes if within(x[1], l, withinVal*2)]
+            if not slope:
+                return None
         weights.append(len(slope))
         slopeList, intcList = list(zip(*slope))
         avgSlope = np.mean(np.asarray(slopeList))
@@ -141,7 +147,7 @@ def getLinesPoints(img, lines, debug=False):
 
 def getContours(canny):
     cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
-    contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
     # get extra data about the contours
     contours2 = [contourPlus(x) for x in contours]
@@ -184,7 +190,10 @@ def getHeading(leftPts, rightPts, img):
     bottomY = height
 
     # line equation
-    m = (avgTopY - bottomY) / (avgTopX - bottomX)
+    if (avgTopX - bottomX) != 0:
+        m = (avgTopY - bottomY) / (avgTopX - bottomX)
+    else:
+        m = 1000000
     b = bottomY - m*bottomX
 
     # make sure doesn't exceed image boundaries
@@ -350,7 +359,11 @@ def parseImage(path, hmg, invh, debug=False):
         # contourImg = cv.cvtColor(cannyColor, cv.COLOR_BGR2GRAY)
 
         lines = houghLines(contourImg)
+        if not lines:
+            return None
         points = getLinesPoints(canny, lines, debug=debug)
+        if not points:
+            return None
         if debug:
             points, laneImg = points
             leftPoints, rightPoints = points
@@ -379,7 +392,7 @@ def parseImage(path, hmg, invh, debug=False):
             return origTarget
 
     except Exception as e:
-        # raise e
+        raise e
         if not debug:
             return None
         else:

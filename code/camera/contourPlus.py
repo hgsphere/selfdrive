@@ -11,7 +11,11 @@ class contourPlus(object):
     def __init__(self, ar):
         """This has the contour array, but also more data."""
         self.array = ar
-        self.rect = minAreaRect(ar)
+        try:
+            self.rect = minAreaRect(ar)
+        except Exception as e:
+            print(ar)
+            raise e
         # minAreaRect returns tuple of ((centerX, centerY), (width, height), angle)
         self.approx = approxPolyDP(ar, epsilon=0.1, closed=True)
         # unpack

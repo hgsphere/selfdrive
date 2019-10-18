@@ -32,7 +32,7 @@ def findContours(img):
     canny = cv.Canny(img, 100, 200)
 
     cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
-    contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
     cv.drawContours(cannyColor, contours, -1, (0, 255, 0), 3)
     # displayImage("canny", cannyColor)
