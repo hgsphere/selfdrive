@@ -1,5 +1,6 @@
 import sys
 from code.systemStructure.pollers import Pollers
+from code.systemStructure.EmergencyStopDetector import EmergencyStopDetector
 import multiprocessing as mp
 
 
@@ -14,6 +15,7 @@ class SystemManager():
         self.emergencyStop_routeManagerQ = mp.Queue()
         self.stopDetect_routeManagerQ = mp.Queue()
         self.poller = Pollers(False)
+        self.emStop = EmergencyStopDetector()
 
 
     def initializeSystem(self):
@@ -27,27 +29,36 @@ class SystemManager():
 
 
 
-def main(self):
-    if sys.argv[1] is True:
-        print("debugging enabled")
-    ctx = mp.get_context('spawn')
-    #frame poller process setup and start
-    framePollerProcess = ctx.Process(target=self.poller.pollFrame, args=(self.frame_laneDetectQ, self.frame_emergencyStopQ, self.frame_stopDetectQ))
-    framePollerProcess.start()
-    # print(self.frame_laneDetectQ.get())
-    framePollerProcess.join()
+    def main(self):
+        if sys.argv[1] is True:
+            print("debugging enabled")
+        ctx = mp.get_context('spawn')
+        #frame poller process setup and start
+        framePollerProcess = ctx.Process(target=self.poller.pollFrame, args=(self.frame_laneDetectQ, self.frame_emergencyStopQ, self.frame_stopDetectQ))
+        framePollerProcess.start()
+        # print(self.frame_laneDetectQ.get())
 
-    # IPS poller process setup and start
+        # IPS poller process setup and start
 
-    # Lane detector process setup and start
+        # Lane detector process setup and start
 
-    # Stop detector process setup and start
+        # Stop detector process setup and start
 
-    # Emergency stop process setup and start
+        # Emergency stop process setup and start
+        emergencyStopProcess = ctx.Process(target=self.emStop.detectStop, args=(self.frame_emergencyStopQ, self.emergencyStop_routeManagerQ))
+        emergencyStopProcess.start()
 
-    # Route manager process setup and start
+        # Route manager process setup and start
 
+        # wait for everything to complete
+        framePollerProcess.join()
+        emergencyStopProcess.join()
+
+
+def wrapperMain():
+    sysM = SystemManager()
+    sysM.main()
 
 
 if __name__ == "__main__":
-    main()
+    wrapperMain()
