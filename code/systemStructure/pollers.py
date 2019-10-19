@@ -5,6 +5,10 @@ import cv2 as cv
 import time
 import sys
 import os
+import multiprocessing, logging
+logger = multiprocessing.log_to_stderr()
+logger.setLevel(logging.INFO)
+logger.warning('doomed')
 
 class Pollers():
     def __init__(self, debugging):
@@ -69,15 +73,29 @@ class Pollers():
                 if not depth:
                     continue
 
+                print("Next frame available")
                 colorData = np.asanyarray(color.get_data())
                 depthData = np.asanyarray(depth.get_data())
-                depthFloat = self.processDepthFrame(depthData)
+                print("pre process depth data")
+                depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
 
+                print(toLaneDetectQ.qsize())
+                print("filling queues...")
+                logger.error('Here I am')
                 toLaneDetectQ.put(colorData)
                 toStopDetectQ.put(colorData)
                 toEmergencyStopQ.put(depthFloat)
+                print("filled queues")
 
                 # Render images
+                # depth_colormap = np.asanyarray(cv.applyColorMap(
+                #     cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
+
+                # cv.imwrite(outpath_rgb, colorData)
+                # depth_colormap = np.asanyarray(cv.applyColorMap(
+                #     cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
+
+                # cv.imwrite(outpath_rgb, colorData)
                 # depth_colormap = np.asanyarray(cv.applyColorMap(
                 #     cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
 
@@ -85,21 +103,16 @@ class Pollers():
                 # cv.imwrite(outpath_dep, depth_colormap)
                 # writer_rgb.write(colorData)
                 # writer_dep.write(depth_colormap)
-
-            exit(0)
+            #raise Exception
         # except rs.error as e:
         #    # Method calls agaisnt librealsense objects may throw exceptions of type pylibrs.error
         #    print("pylibrs.error was thrown when calling %s(%s):\n", % (e.get_failed_function(), e.get_failed_args()))
         #    print("    %s\n", e.what())
         #    exit(1)
         except Exception as e:
-            print(e)
-            pass
-
-        # writer_rgb.release()
-        # writer_dep.release()
-
-    def pollIPS(self):
-        # retrieve position in longitude and latitude from IPS and place it in the input queue to the RouteManager
-        if self.debugging is 1:
-            print("debugging")
+            print('Did I make it')
+            sys.stdout.flush()
+            sys.stderr.write("exception hit\n")
+            sys.stderr.write(e)
+            logger.error(e)
+            raise e

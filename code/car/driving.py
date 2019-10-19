@@ -50,6 +50,19 @@ class control:
     """ Inits serial connection and pushes default calibration parameters
     """
     def __init__(self):
+
+
+        self.SPEED_STOP = SPEED_STOP
+        self.SPEED_GO = SPEED_GO
+        self.SPEED_SLOW = SPEED_SLOW
+        self.STEER_STRAIGHT = STEER_STRAIGHT
+        self.STEER_RIGHT = STEER_RIGHT
+        self.STEER_LEFT = STEER_LEFT
+        self.TEST_DELAY = TEST_DELAY
+        self.FULL_TURN_DELAY = FULL_TURN_DELAY
+        self.HALF_TURN_DELAY = HALF_TURN_DELAY
+        self.INIT_DELAY = INIT_DELAY
+
         # init everyting
         self.serial_connect()
         time.sleep(2) # This wait is needed or else the configs don't take effect
@@ -60,6 +73,8 @@ class control:
         # Make sure the car is stopped
         self.force_stop()
         time.sleep(1)
+
+
 
     def __del__(self):
         self.serial_close()

@@ -26,7 +26,7 @@ class lanefollower:
         self.compute_transforms()
 
         print('Init Camera')
-        self.config_frames_pipeline()
+        # self.config_frames_pipeline()
 
     def compute_transforms(self):
         # SETUP once

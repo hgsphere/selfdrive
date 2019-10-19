@@ -69,4 +69,4 @@ class asyncDrive:
         self.add_angle(angle)
 
         f_angle = self.filter_angles()
-        self.ctl.steer(f_angle)
+        self.ctl.steer(round(f_angle,2))
