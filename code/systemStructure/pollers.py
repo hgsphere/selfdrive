@@ -9,6 +9,23 @@ import os
 class Pollers():
     def __init__(self, debugging):
         self.debugging = debugging
+        self.clipping_distance = None
+
+    def processDepthFrame(self, depthData, width, height):
+        depthFloat = np.zeros(depthData.shape, dtype=np.float32)
+
+        # threshold the depth image
+        grey_color = 153
+        for i in range(width):
+            for j in range(height):
+                distance = depthData[j, i]
+                if distance > self.clipping_distance:
+                    depthFloat[j, i] = grey_color
+                else:
+                    depthFloat[j, i] = distance
+
+        gauss = cv.GaussianBlur(depthFloat, (5, 5), -1)
+        return gauss
 
     def pollFrame(self, toLaneDetectQ, toEmergencyStopQ, toStopDetectQ):
         # retrieve frame from camera and place it in the input queue to the LaneDetector Data Interpreter
@@ -32,7 +49,12 @@ class Pollers():
 
         try:
             # Create a context object. This object owns the handles to all connected realsense devices
-            pipeline.start(config)
+            profile = pipeline.start(config)
+            depth_sensor = profile.get_device().first_depth_sensor()
+            depth_scale = depth_sensor.get_depth_scale()
+            clipping_distance_in_meters = 0.3
+            self.clipping_distance = clipping_distance_in_meters / depth_scale
+
             print("pipeline started")
             sys.stdout.flush()
 
@@ -44,18 +66,20 @@ class Pollers():
                 frames = pipeline.wait_for_frames()
                 depth = frames.get_depth_frame()
                 color = frames.get_color_frame()
-                toLaneDetectQ.put(color)
-                toStopDetectQ.put(color)
-                toEmergencyStopQ.put(depth)
                 if not depth:
                     continue
 
                 colorData = np.asanyarray(color.get_data())
                 depthData = np.asanyarray(depth.get_data())
+                depthFloat = self.processDepthFrame(depthData)
+
+                toLaneDetectQ.put(colorData)
+                toStopDetectQ.put(colorData)
+                toEmergencyStopQ.put(depthFloat)
 
                 # Render images
-                depth_colormap = np.asanyarray(cv.applyColorMap(
-                    cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
+                # depth_colormap = np.asanyarray(cv.applyColorMap(
+                #     cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
 
                 # cv.imwrite(outpath_rgb, colorData)
                 # cv.imwrite(outpath_dep, depth_colormap)
@@ -72,8 +96,9 @@ class Pollers():
             print(e)
             pass
 
-        writer_rgb.release()
-        writer_dep.release()
+        # writer_rgb.release()
+        # writer_dep.release()
+
     def pollIPS(self):
         # retrieve position in longitude and latitude from IPS and place it in the input queue to the RouteManager
         if self.debugging is 1:

@@ -32,26 +32,30 @@ class EmergencyStopDetector(object):
                 print(e)
 
     def maskImage(self, img):
-        width = img.shape[1]
-        height = img.shape[0]
+        # width = img.shape[1]
+        # height = img.shape[0]
 
-        x0 = 80
-        x1 = width - 30
+        x0 = 150
+        x1 = 520
 
-        y0 = 100
-        y1 = height - 90
+        y0 = 150
+        y1 = 380
 
         roi = img[y0:y1, x0:x1]
         return roi
 
+    def checkForCloseObject(self, depthFrame):
+        return depthFrame.max() > 200
+
     def parseFrame(self, depthFrame):
+        """Returns True if something is ahead of it too close, False otherwise"""
         # displayImage("depth", depthFrame)
 
         roi = self.maskImage(depthFrame)
         displayImage("masked", roi)
         # https://github.com/IntelRealSense/librealsense/tree/development/wrappers/opencv/depth-filter
 
-        return False
+        return self.checkForCloseObject(roi)
 
 
 def testMain():
@@ -60,13 +64,15 @@ def testMain():
     # imgName = "calibre_centerv1_1.jpeg"
     # imgs = [os.path.join(imgDir, imgName)]
 
-    imgDir = os.path.abspath("../../testimages/frames/depth")
+    # imgDir = os.path.abspath("../../testimages/frames/depth")
+    imgDir = os.path.abspath("../camera/tools/depthFrames")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
     for path in imgs:
         img = cv.imread(path)
-        esd.parseFrame(img)
+        result = esd.parseFrame(img)
+        print(result)
 
 
 if __name__ == '__main__':
