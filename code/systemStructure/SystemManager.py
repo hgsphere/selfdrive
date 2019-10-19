@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 from code.systemStructure.pollers import Pollers
 from code.car.LaneDetector import lanefollower
@@ -21,7 +23,6 @@ class SystemManager():
         self.routeManager = RouteManager()
         self.emStop = EmergencyStopDetector()
 
-
     def initializeSystem(self):
         print("Initializing System")
         print("Starting FramePoller")
@@ -30,8 +31,6 @@ class SystemManager():
 
     def shutdownSystem(self):
         print("Shutting down system")
-
-
 
     def main(self):
         if sys.argv[1] is True:
@@ -61,6 +60,9 @@ class SystemManager():
         # wait for everything to complete
         framePollerProcess.join()
         emergencyStopProcess.join()
+        laneDetectorProcess.join()
+        stopDetectorProcess.join()
+        routeManagerProcess.join()
 
 
 def wrapperMain():
