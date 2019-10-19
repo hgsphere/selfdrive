@@ -80,46 +80,47 @@ class lanefollower:
         # angle = 0
         return angle
 
-    def proc(self,frame):
+    def getCorrectionAngle(self, frame_laneDetectQ, laneDetect_routeManagerQ):
         # frame is recent RGB image from car
         # frame = cv.imread(RBG_IMAGE, cv.IMREAD_COLOR)
         # target is (leftPts, rightPts)
+        while True:
+            frame = frame_laneDetectQ.get()
 
-        CROSSWALK = False
+            target = parseImage(frame, self.hmg, self.invh)
 
-        target = parseImage(frame, self.hmg, self.invh)
-
-        overlay = showHeading(target, frame)
-
-        #displayImage('overlay',overlay)
-
-        if target is not None:
-            angle = self.calc_angle(target)
-        else:
-            angle = 0
+            if target is not None:
+                angle = self.calc_angle(target)
+            else:
+                angle = -666
+            laneDetect_routeManagerQ.put(angle)
         # if debug:
         #     target, overlay = target
         # else:
         #     pass
         #     overlay = showHeading(target, frame)
-        
-        crossbox, crossLines = findStopLine(frame, self.hmg, self.invh)
 
 
+        # if VIEW:
+        #     overlay = showHeading(target, frame)
+        #     self.displayImage('overlay',overlay)
+        #     if CROSSWALK:
+        #         overlay = drawCrossBox(overlay, crossbox)
+        #         overlay = drawCrossLines(overlay, crossLines)
+        #     displayImage('overlay2',overlay)
 
-        if (crossbox is not None) or (crossLines is not None):
-            CROSSWALK = True
+        # return angle,CROSSWALK
 
+    def getCrosswalk(self, frame_stopDetectQ, stopDetect_routeManagerQ):
+        while True:
+            frame = frame_stopDetectQ.get()
+            CROSSWALK = False
+            crossbox, crossLines = findStopLine(frame, self.hmg, self.invh)
 
-        if VIEW:
-            overlay = showHeading(target, frame)
-            self.displayImage('overlay',overlay)
-            if CROSSWALK:
-                overlay = drawCrossBox(overlay, crossbox)
-                overlay = drawCrossLines(overlay, crossLines)
-            displayImage('overlay2',overlay)
+            if (crossbox is not None) or (crossLines is not None):
+                CROSSWALK = True
+            stopDetect_routeManagerQ.put(CROSSWALK)
 
-        return angle,CROSSWALK
 
 def testcapture():
     print("Test Camera Capture and detection")
@@ -130,7 +131,7 @@ def testcapture():
         try:
 
             rbg,depth = lf.get_frame()
-            angle,CROSSWALK = lf.proc(rbg)
+            angle,CROSSWALK = lf.getCorrectionAngle(rbg)
             
             # print(angle,CROSSWALK)
             result = {

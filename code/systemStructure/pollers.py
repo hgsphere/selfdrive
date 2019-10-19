@@ -22,13 +22,13 @@ class Pollers():
         print("pipeline created")
 
         # make a video writer
-        fourcc = cv.VideoWriter_fourcc(*"MJPG")
-        outpath_rgb = os.path.join(os.getcwd(), "output-rgb.avi")
-        outpath_dep = os.path.join(os.getcwd(), "output-depth.avi")
-        writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate,
-                                    (shape[0], shape[1]), True)
-        writer_dep = cv.VideoWriter(outpath_dep, fourcc, frame_rate,
-                                    (shape[0], shape[1]), True)
+        # fourcc = cv.VideoWriter_fourcc(*"MJPG")
+        # outpath_rgb = os.path.join(os.getcwd(), "output-rgb.avi")
+        # outpath_dep = os.path.join(os.getcwd(), "output-depth.avi")
+        # writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate,
+        #                             (shape[0], shape[1]), True)
+        # writer_dep = cv.VideoWriter(outpath_dep, fourcc, frame_rate,
+        #                             (shape[0], shape[1]), True)
 
         try:
             # Create a context object. This object owns the handles to all connected realsense devices
@@ -59,8 +59,8 @@ class Pollers():
 
                 # cv.imwrite(outpath_rgb, colorData)
                 # cv.imwrite(outpath_dep, depth_colormap)
-                writer_rgb.write(colorData)
-                writer_dep.write(depth_colormap)
+                # writer_rgb.write(colorData)
+                # writer_dep.write(depth_colormap)
 
             exit(0)
         # except rs.error as e:
