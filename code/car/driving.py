@@ -21,7 +21,7 @@ DEFAULT_KD = 0.01
 #List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .8
-SPEED_SLOW = .4 #0.5 # min speed
+SPEED_SLOW = .2 #0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -25
@@ -66,7 +66,7 @@ class control:
         # init everyting
         self.serial_connect()
         time.sleep(2) # This wait is needed or else the configs don't take effect
-        self.init_history()
+#        self.init_history()
         self.init_calibrate()
         # time.sleep(2)
         
@@ -78,7 +78,7 @@ class control:
 
     def __del__(self):
         self.serial_close()
-        self.history.close()
+ #       self.history.close()
 
     def init_history(self):
         self.history = open(HISTORY_FILE,"w+")
@@ -196,9 +196,9 @@ class control:
         value -- steering angle (-30.0 - 30.0)
     """
     def steer(self,angle):
-        if not (-30.0 <= angle <= 30.0):
-            print('ERROR: Invalid Steering !')
-            return
+  #      if not (-30.0 <= angle <= 30.0):
+   #         print('ERROR: Invalid Steering !')
+    #        return
         command = '!steering{}\n'.format(angle)
         self.push_command(command)
         
@@ -219,7 +219,7 @@ class control:
         print('INFO: Command Sent: {}'.format(repr(command)))
 
         # save to command history
-        self.history.write(command)
+     #   self.history.write(command)
 
 
     ######################## STEERING

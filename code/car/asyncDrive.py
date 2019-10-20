@@ -5,17 +5,29 @@ import sys
 import collections
 import threading
 import numpy as np
+from pykalman import KalmanFilter
 
 sys.path.append(os.path.abspath("../car/"))
 from driving import control
-
+sys.path.append(os.path.abspath("."))
+from pid import PID
 
 class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        self.angles = collections.deque(maxlen=15)
+        zz = np.zeros((1,20))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        print(self.angles)
         self.forceDriveDone = False
+        self.last_angle = 0
+        self.turn_skip = 4
+        self.turn_count = 0
+        self.angle = 0
+        self.m = 0
+        self.c = 0
+        #self.pid = PID(1,0,1.25)
+        self.pid = PID(1,.00075,.75)
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -55,18 +67,45 @@ class asyncDrive:
 
     def add_angle(self, angle):
         self.angles.append(angle)
+        self.angle = angle
+        self.turn_count = self.turn_count + 1
 
     def filter_angles(self):
         # returns filtered angle decision
         # data = np.array(self.angles)
         data = [x if (x <= 30) else 30 for x in list(self.angles)]
         data = [x if (x >= -30) else -30 for x in list(data)]
-
-        return np.mean(data)
+        #data = self.angles
+        kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
+        means, covs = kf.filter(list(data))
+        estimate = means[14][0]
+        self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])
+        self.c = covs[0][0] #np.mean([covs[i][0] for i in range(9,19)])
+        #diff = np.mean(np.diff(means,axis=0))*20
+        #print(list(data))
+        #print(means)
+        #print(np.diff(means,axis=0))
+        #print(diff)
+        #print(list(data)[4:7])
+        #print(np.cov(data))
+        avg = np.mean([means[i][0] for i in range(15,19)])
+        print(avg)
+        #mm = round(np.mean(list(data)[4:7]),2)
+        #print(mm)
+        #estimate = estimate if (estimate <=30) else 30
+        #estimate = estimate if (estimate >= -30) else -30
+        return round(avg,2)
 
     def LaneFollow(self, angle):
         # updates angle queue changes steering
         self.add_angle(angle)
 
         f_angle = self.filter_angles()
-        self.ctl.steer(round(f_angle,2))
+        #f_angle = self.angle*3/4
+        #if f_angle is not self.last_angle:
+       
+        if self.turn_count >= self.turn_skip:
+            sendme = self.pid.get(f_angle)
+            self.ctl.steer(sendme)
+            self.turn_count = 0
+            self.last_angle = sendme
