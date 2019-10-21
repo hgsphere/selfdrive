@@ -6,9 +6,11 @@ import time
 import sys
 import os
 import multiprocessing, logging
-logger = multiprocessing.log_to_stderr()
-logger.setLevel(logging.INFO)
-logger.warning('doomed')
+
+#This prints in threads
+#logger = multiprocessing.log_to_stderr()
+#logger.setLevel(logging.INFO)
+#logger.warning('doomed')
 
 class Pollers():
     def __init__(self, debugging):
@@ -35,6 +37,7 @@ class Pollers():
         # retrieve frame from camera and place it in the input queue to the LaneDetector Data Interpreter
         config = rs.config()
         shape = (640, 480)
+        #shape = (320,240)
         frame_rate = 30
 
         config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
@@ -73,19 +76,19 @@ class Pollers():
                 if not depth:
                     continue
 
-                print("Next frame available")
+                #print("Next frame available")
                 colorData = np.asanyarray(color.get_data())
                 depthData = np.asanyarray(depth.get_data())
-                print("pre process depth data")
+                #print("pre process depth data")
                 depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
 
                 print(toLaneDetectQ.qsize())
-                print("filling queues...")
-                logger.error('Here I am')
+                #print("filling queues...")
+                #logger.error('Here I am')
                 toLaneDetectQ.put(colorData)
                 toStopDetectQ.put(colorData)
                 toEmergencyStopQ.put(depthFloat)
-                print("filled queues")
+#                print("filled queues")
 
                 # Render images
                 # depth_colormap = np.asanyarray(cv.applyColorMap(
@@ -114,5 +117,5 @@ class Pollers():
             sys.stdout.flush()
             sys.stderr.write("exception hit\n")
             sys.stderr.write(e)
-            logger.error(e)
+            #logger.error(e)
             raise e

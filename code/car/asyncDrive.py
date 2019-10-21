@@ -16,18 +16,19 @@ class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        zz = np.zeros((1,20))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        zz = np.zeros((1,30))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=30)
         print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
-        self.turn_skip = 4
+        self.turn_skip = 5
         self.turn_count = 0
         self.angle = 0
         self.m = 0
         self.c = 0
         #self.pid = PID(1,0,1.25)
-        self.pid = PID(1,.00075,.75)
+        self.pid = PID(1,.0075,.75)
+        #self.pid = PID(.5,.75,.2)
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -76,7 +77,8 @@ class asyncDrive:
         data = [x if (x <= 30) else 30 for x in list(self.angles)]
         data = [x if (x >= -30) else -30 for x in list(data)]
         #data = self.angles
-        kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
+        #kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=self.m,initial_state_covariance=self.c,n_dim_obs=1)
         means, covs = kf.filter(list(data))
         estimate = means[14][0]
         self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])
@@ -88,13 +90,13 @@ class asyncDrive:
         #print(diff)
         #print(list(data)[4:7])
         #print(np.cov(data))
-        avg = np.mean([means[i][0] for i in range(15,19)])
+        avg = np.mean([means[i][0] for i in range(25,29)])
         print(avg)
         #mm = round(np.mean(list(data)[4:7]),2)
         #print(mm)
         #estimate = estimate if (estimate <=30) else 30
         #estimate = estimate if (estimate >= -30) else -30
-        return round(avg,2)
+        return round(avg,0)
 
     def LaneFollow(self, angle):
         # updates angle queue changes steering
@@ -104,8 +106,9 @@ class asyncDrive:
         #f_angle = self.angle*3/4
         #if f_angle is not self.last_angle:
        
+        #self.pid.get(f_angle,True)
         if self.turn_count >= self.turn_skip:
-            sendme = self.pid.get(f_angle)
+            sendme = self.pid.get(f_angle,True,True)
             self.ctl.steer(sendme)
             self.turn_count = 0
             self.last_angle = sendme

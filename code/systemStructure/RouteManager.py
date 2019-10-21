@@ -41,11 +41,11 @@ class RouteManager():
 
         while True:
             self.angle = self.laneDetectQ.get()
-            print(angle, end='\t')
-            self.crosswalk = self.stopDetectQ.get()
-            print(crosswalk, end='\t')
-            self.emergencyStop = self.emergencyStopQ.get()
-            print(emergencyStop, end='\t')
+            print(self.angle, end='\t')
+            self.CROSSWALK = self.stopDetectQ.get()
+            print(self.CROSSWALK, end='\t')
+            self.EMERGENCY = self.emergencyStopQ.get()
+            print(self.EMERGENCY, end='\t')
             self.RouteTick()
             print(self.state)
 

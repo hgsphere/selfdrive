@@ -270,7 +270,8 @@ def addImageQuadrant(bigImg, img, quadrant):
         p0 = (halfW, halfH)
         p1 = (width, height)
     else:
-        print("invalid quadrant!", file=sys.stderr)
+        print("invalid quadrant!")
+        #print("invalid quadrant!", file=sys.stderr) there was some error here
         return None
 
     # subsample image
@@ -333,6 +334,7 @@ def parseImage(path, hmg, invh, debug=False):
     else:
         img = path
     kSz = 5
+    #displayImage('input',img)
     # element = cv.getStructuringElement(cv.MORPH_RECT, (kSz, kSz), (-1, -1))
     # img = cv.morphologyEx(img, cv.MORPH_OPEN, element)
     warped = cv.warpPerspective(img, hmg, (img.shape[1], img.shape[0]))
@@ -343,7 +345,8 @@ def parseImage(path, hmg, invh, debug=False):
 
     # convert color space, threshold the image, remove noise
     smoothed = cleanupImage(warped)
-    # displayImage("smoothed", smoothed)
+#    smoothed = cleaenupImage(img)
+    #displayImage("smoothed", smoothed)
 
     # collage of images - original (w/ heading), smoothed, contours & canny, lanes
     if debug:
@@ -360,9 +363,11 @@ def parseImage(path, hmg, invh, debug=False):
 
         lines = houghLines(contourImg)
         if not lines:
+            print('no lines found')
             return None
         points = getLinesPoints(canny, lines, debug=debug)
         if not points:
+            print('no points found')
             return None
         if debug:
             points, laneImg = points
