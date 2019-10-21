@@ -24,11 +24,19 @@ def cleanupImage(img):
     # the yellow looks white and the white looks black
 
     # threshold to only keep yellow lines
-    threshYellow = cv.inRange(satImg, 220, 255)
+    threshYellow = cv.inRange(satImg, 150, 255)
     # apply a Gaussian blur to smooth edges and remove noise
     kSz = 7
     smoothed = cv.GaussianBlur(threshYellow, (kSz, kSz), 0)
     # displayImage("yellow thresh", smoothed)
+
+    # get yellow from hsv
+    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    lower_yellow = np.array([10, 100, 100], dtype=np.uint8)
+    upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
+    mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
+    blur_yellow = cv.GaussianBlur(mask_yellow, (kSz, kSz), 0)
+    # displayImage("mask_yellow", mask_yellow)
 
     # get the grayscale channel from HLS color space
     grayImg = newColorSpace(img, cNum=1)
@@ -41,6 +49,7 @@ def cleanupImage(img):
 
     # mask the 2 images together
     combined = cv.bitwise_or(smoothed, smoothed2)
+    combined = cv.bitwise_or(combined, blur_yellow)
     return combined
 
 
@@ -147,7 +156,10 @@ def getLinesPoints(img, lines, debug=False):
 
 def getContours(canny):
     cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
-    _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    if cv.getVersionMajor() == 3:
+        _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    else:
+        contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
     # get extra data about the contours
     contours2 = [contourPlus(x) for x in contours]
@@ -292,8 +304,10 @@ def fixLaneData(img, leftLane, rightLane):
     withinVal = width // 12
     midPt = width // 2
     # estimates for average lane width
-    bottomLaneWidth = 250
-    topLaneWidth = 350
+    # bottomLaneWidth = 250
+    # topLaneWidth = 350
+    bottomLaneWidth = 150
+    topLaneWidth = 150
     # unpack
     lP0, lP1 = leftLane
     rP0, rP1 = rightLane
@@ -334,19 +348,19 @@ def parseImage(path, hmg, invh, debug=False):
     else:
         img = path
     kSz = 5
-    #displayImage('input',img)
+    # displayImage('input',img)
     # element = cv.getStructuringElement(cv.MORPH_RECT, (kSz, kSz), (-1, -1))
     # img = cv.morphologyEx(img, cv.MORPH_OPEN, element)
     warped = cv.warpPerspective(img, hmg, (img.shape[1], img.shape[0]))
     warped = cv.GaussianBlur(warped, (kSz, kSz), 0)
     # kill the top of the image
     warped = cv.rectangle(warped, (0, 0), (img.shape[1], img.shape[0] // 2), (0, 0, 0), -1)
-    # displayImage("eroded", warped)
+    # displayImage("warped", warped)
 
     # convert color space, threshold the image, remove noise
     smoothed = cleanupImage(warped)
 #    smoothed = cleaenupImage(img)
-    #displayImage("smoothed", smoothed)
+    # displayImage("smoothed", smoothed)
 
     # collage of images - original (w/ heading), smoothed, contours & canny, lanes
     if debug:
@@ -406,20 +420,22 @@ def parseImage(path, hmg, invh, debug=False):
 
 
 def main():
-    # imgDir = os.path.abspath("../../testimages/frames/rgb")
-    imgDir = os.path.abspath("../../testvideo/frames")
+    imgDir = os.path.abspath("../../testimages/lowres")
+    # imgDir = os.path.abspath("../../testvideo/frames")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
-    hmg = getHomographyMatrix("color")
-    invh = getHomographyMatrix("color", inverse=True)
+    hmg = getHomographyMatrix("color-lowres")
+    invh = getHomographyMatrix("color-lowres", inverse=True)
 
     for i in imgs:
-        # if not "frame418" in i:
+        # if not "frame9" in i:
         #     continue
         print(os.path.basename(i))
-        target, overlay = parseImage(i, hmg, invh, debug=True)
-        displayImage("overlay", overlay)
+        result = parseImage(i, hmg, invh, debug=True)
+        if result is not None:
+            target, overlay = result
+            displayImage("overlay", overlay)
 
 
 if __name__ == '__main__':

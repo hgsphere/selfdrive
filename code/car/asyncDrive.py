@@ -21,7 +21,7 @@ class asyncDrive:
         print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
-        self.turn_skip = 5
+        self.turn_skip = 11
         self.turn_count = 0
         self.angle = 0
         self.m = 0
@@ -90,7 +90,7 @@ class asyncDrive:
         #print(diff)
         #print(list(data)[4:7])
         #print(np.cov(data))
-        avg = np.mean([means[i][0] for i in range(25,29)])
+        avg = np.mean([means[i][0] for i in range(19,29)])
         print(avg)
         #mm = round(np.mean(list(data)[4:7]),2)
         #print(mm)

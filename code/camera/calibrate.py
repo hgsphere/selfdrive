@@ -42,6 +42,32 @@ rgbChessPtsIdxs = [
     [9, 2], [8, 3], [8, 4], [8, 5],                                             # 9th row
 ]
 
+# redo for low res
+IMG_H_LOW = 240
+IMG_W_LOW = 424
+rgbLowSrcName = "chessboard-lowres2.png"
+rgbSrcPtsLow = [
+    [120, 121], [145, 121], [170, 121], [195, 121], [221, 121],                 # 0th row
+            [246, 120], [271, 122], [297, 122],
+    [113, 125], [139, 125], [166, 125], [276, 126], [303, 126], [333, 127],     # 1st row
+    [101, 131], [162, 130], [221, 132], [282, 131], [342, 132],                 # 2nd row
+    [90 , 137], [156, 138], [223, 138], [290, 139], [358, 139],                 # 3rd row
+    [55 , 157], [140, 157], [224, 157], [310, 158], [397, 158],                 # 5th row
+    [30 , 171], [127, 171], [226, 171], [327, 172], [423, 172],                 # 6th row
+    [53 , 191], [111, 191], [228, 191], [347, 192], [406, 192],                 # 7th row
+    [14 , 218], [85 , 219], [231, 220], [305, 221], [378, 221],                 # 8th row
+]
+rgbChessPtsIdxsLow = [
+    [0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7],             # 0th row
+    [1, 0], [1, 1], [1, 2], [1, 6], [1, 7], [1, 8],                             # 1st row
+    [2, 0], [2, 2], [2, 4], [2, 6], [2, 8],                                     # 2nd row
+    [3, 0], [3, 2], [3, 4], [3, 6], [3, 8],                                     # 3rd row
+    [5, 0], [5, 2], [5, 4], [5, 6], [5, 8],                                     # 5th row
+    [6, 0], [6, 2], [6, 4], [6, 6], [6, 8],                                     # 6th row
+    [7, 1], [7, 2], [7, 4], [7, 6], [7, 7],                                     # 7th row
+    [8, 1], [8, 2], [8, 4], [8, 5], [8, 6],                                     # 8th row
+]
+
 depSrcName = "calibre_centerv1_1.jpeg"
 depSrcPts = [
     [250, 258], [277, 258], [307, 258], [335, 258],                             # 0th row
@@ -95,6 +121,20 @@ def getHomographyMatrix(type="color", inverse=False):
             hmg, status = cv.findHomography(np.array(depSrcPts), np.array(depChessPts))
         return hmg
 
+    elif type == "color-lowres":
+        # low-res rgb
+        rgbChessboardPts = getChessboardPoints((IMG_W_LOW, IMG_H_LOW), cols=8, rows=9, show=False)
+        rgbChessPts = []
+
+        for p in rgbChessPtsIdxsLow:
+            rgbChessPts.append(rgbChessboardPts[p[0]][p[1]])
+
+        if inverse:
+            hmg, status = cv.findHomography(np.array(rgbChessPts), np.array(rgbSrcPtsLow))
+        else:
+            hmg, status = cv.findHomography(np.array(rgbSrcPtsLow), np.array(rgbChessPts))
+        return hmg
+
     else:
         print("invalid option!")
         return None
@@ -112,11 +152,14 @@ def getImg(dir, name, show=True):
 
 def main():
     pathDir = os.path.abspath("../../testimages/chessboard")
-    rgbDir = os.path.join(pathDir, "rgb")
+    # rgbDir = os.path.join(pathDir, "rgb")
     depDir = os.path.join(pathDir, "depth")
 
-    rgbSrc = getImg(rgbDir, rgbSrcName)
-    hmg = getHomographyMatrix("color")
+    # rgbSrc = getImg(rgbDir, rgbSrcName)
+    # hmg = getHomographyMatrix("color")
+    rgbDir = os.path.abspath("./tools")
+    rgbSrc = getImg(rgbDir, rgbLowSrcName, show=False)
+    hmg = getHomographyMatrix("color-lowres")
     rgbOut = cv.warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
 
     cv.imshow("warpedRGB", rgbOut)

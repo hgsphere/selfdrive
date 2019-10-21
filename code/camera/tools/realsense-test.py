@@ -11,19 +11,21 @@ import os
 def main():
     config = rs.config()
     shape = (640, 480)
+    shape_rgb = (424, 240)
     frame_rate = 30
+    frame_rate_rgb = 60
     
     config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
-    config.enable_stream(rs.stream.color, shape[0], shape[1], rs.format.bgr8, frame_rate)
+    config.enable_stream(rs.stream.color, shape_rgb[0], shape_rgb[1], rs.format.bgr8, frame_rate_rgb)
     pipeline = rs.pipeline()
     print("pipeline created")
 
     # make a video writer
     fourcc = cv.VideoWriter_fourcc(*"MJPG")
-    outpath_rgb = os.path.join(os.getcwd(), "output-rgb.avi")
-    outpath_dep = os.path.join(os.getcwd(), "output-depth.avi")
-    writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate,
-            (shape[0], shape[1]), True)
+    outpath_rgb = os.path.join(os.getcwd(), "output-rgb-low.avi")
+    outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")
+    writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,
+            (shape_rgb[0], shape_rgb[1]), True)
     writer_dep = cv.VideoWriter(outpath_dep, fourcc, frame_rate,
             (shape[0], shape[1]), True)
 
@@ -33,8 +35,8 @@ def main():
         print("pipeline started")
         sys.stdout.flush()
 
-        while True:
-        # for i in range(60):
+        #while True:
+        for i in range(60):
             time.sleep(0.01)
             # This call waits until a new coherent set of frames is available on a device
             # Calls to get_frame_data(...) and get_frame_timestamp(...) on a device will return stable values until wait_for_frames(...) is called
