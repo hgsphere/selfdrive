@@ -18,7 +18,7 @@ from RouteManager import RouteManager
 
 # RBG_IMAGE = 'frame.jpeg'
 VIEW = False
-CAR_CENTER_RATIO = 28/64
+CAR_CENTER_RATIO = 33/64
 
 class lanefollower:
 
@@ -28,6 +28,8 @@ class lanefollower:
 
         print('Init Camera')
         self.config_frames_pipeline()
+        self.last_angle = 0
+        self.init_angle = True
 
     def compute_transforms(self):
         # SETUP once
@@ -106,6 +108,20 @@ class lanefollower:
             angle = self.calc_angle(target)
         else:
             angle = 0
+
+        #if self.init_angle:
+        #    self.last_angle = angle
+        #    self.init_angle = False
+
+        if (angle > self.last_angle + 10) or (angle < self.last_angle - 10):
+            target = parseImage(frame, self.hmg, self.invh)
+            overlay = showHeading(target, frame)
+            if target is not None:
+                if (angle > self.last_angle + 10) or (angle < self.last_angle - 10):
+                    angle = self.calc_angle(target)
+            else:
+                angle = self.last_angle
+        self.last_angle = angle
         # if debug:
         #     target, overlay = target
         # else:

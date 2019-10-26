@@ -31,17 +31,19 @@ def testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=False):
     crossbox, crossLines = findStopLine(frame, hmg, invh)
 
     if crossbox is None:
-        pass
+        overlay = frame
     else:
-        drawCrossBox(frame, crossbox)
+        overlay = drawCrossBox(frame, crossbox)
 
     if crossLines:
-        drawCrossLines(frame, crossLines)
+        # if debug:
+        #     print("Found a line")
+        overlay = drawCrossLines(frame, crossLines)
 
-    out.write(frame)
+    out.write(overlay)
 
     if debug:
-        keyVal = displayImage("frame", frame)
+        keyVal = displayImage("frame", overlay)
         if chr(keyVal & 255) == 's':
             pName = os.path.join(vidDir, "frames/frame{}.jpeg".format(i))
             print("saving {}".format(pName))
@@ -66,19 +68,21 @@ def main():
     # test = "stopLines"
     test = "all"
 
-    frameRate = 30
-    resolution = (640, 480)
+    frameRate = 60
+    resolution = (424, 240)
 
     # change this directory and name to change which video is processed
     if test == "lanes":
         vidDir = "../../testvideo"
-        vidName = "output-rgb.avi"
+        vidName = "output-rgb-lowres.avi"
     elif test == "stopLines":
-        vidDir = "../../testvideo/stopLines"
-        vidName = "stopLine6.avi"
+        # vidDir = "../../testvideo/stopLines"
+        # vidName = "stopLine6.avi"
+        vidDir = "../../testvideo"
+        vidName = "output-rgb-lowres.avi"
     elif test == "all":
         vidDir = "../../testvideo"
-        vidName = "output-rgb.avi"
+        vidName = "output-rgb-lowres.avi"
     else:
         return -1
 
@@ -86,13 +90,15 @@ def main():
     vid = cv.VideoCapture(vidPath)
 
     inName = vidName.split(".")
-    outName = inName[0] + "-debug2.avi"
+    outName = inName[0] + "-debug3.avi"
     outPath = os.path.join(vidDir, outName)
     out = cv.VideoWriter(outPath, cv.VideoWriter_fourcc('M','J','P','G'), frameRate, resolution)
 
-    hmg = getHomographyMatrix("color")
-    invh = getHomographyMatrix("color", inverse=True)
+    hmg = getHomographyMatrix("color-lowres")
+    invh = getHomographyMatrix("color-lowres", inverse=True)
 
+    dbgSecond = 17
+    dbgPeriod = 1
     i = 0
     dbg = False
     # for i in range(60):
@@ -103,15 +109,15 @@ def main():
             if test == "lanes":
                 testLaneDetect(frame, hmg, invh, out, vidDir, i, debug=dbg)
             elif test == "stopLines":
-                testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=False)
+                testCrosswalkDetect(frame, hmg, invh, out, vidDir, i, debug=dbg)
             elif test == "all":
                 testAll(frame, hmg, invh, out, vidDir, i)
             else:
                 break
             i += 1
-            # if i == (7*frameRate):
+            # if i == (dbgSecond*frameRate):
             #     dbg = True
-            # elif i == (8*frameRate):
+            # elif i == ((dbgSecond+dbgPeriod)*frameRate):
             #     dbg = False
             #     cv.destroyAllWindows()
 

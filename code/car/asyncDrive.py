@@ -16,19 +16,20 @@ class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        zz = np.zeros((1,30))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=30)
-        print(self.angles)
+        zz = np.zeros((1,20))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        # print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
-        self.turn_skip = 11
+        self.turn_skip = 0
         self.turn_count = 0
         self.angle = 0
         self.m = 0
         self.c = 0
+        self.initval = True
         #self.pid = PID(1,0,1.25)
-        self.pid = PID(1,.0075,.75)
-        #self.pid = PID(.5,.75,.2)
+        #self.pid = PID(1,.0075,.75)
+        self.pid = PID(.9,.002,.45)
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -78,25 +79,28 @@ class asyncDrive:
         data = [x if (x >= -30) else -30 for x in list(data)]
         #data = self.angles
         #kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
-        kf = KalmanFilter(initial_state_mean=self.m,initial_state_covariance=self.c,n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=0.6,n_dim_obs=1)
         means, covs = kf.filter(list(data))
         estimate = means[14][0]
         self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])
         self.c = covs[0][0] #np.mean([covs[i][0] for i in range(9,19)])
         #diff = np.mean(np.diff(means,axis=0))*20
-        #print(list(data))
-        #print(means)
-        #print(np.diff(means,axis=0))
-        #print(diff)
-        #print(list(data)[4:7])
-        #print(np.cov(data))
-        avg = np.mean([means[i][0] for i in range(19,29)])
-        print(avg)
+        # print(list(data))
+        # print(means)
+        # print(covs)
+        # print(np.diff(means,axis=0))
+        # print(diff)
+        # print(list(data)[4:7])
+        # print(np.cov(data))
+        avg = np.mean([means[i][0] for i in range(15,16)])
+        # print("here")
+        # print(avg)
+        # print("here_after")
         #mm = round(np.mean(list(data)[4:7]),2)
-        #print(mm)
-        #estimate = estimate if (estimate <=30) else 30
-        #estimate = estimate if (estimate >= -30) else -30
-        return round(avg,0)
+        # print(mm)
+        # estimate = estimate if (estimate <=30) else 30
+        # estimate = estimate if (estimate >= -30) else -30
+        return round(avg, 0)
 
     def LaneFollow(self, angle):
         # updates angle queue changes steering
@@ -108,7 +112,11 @@ class asyncDrive:
        
         #self.pid.get(f_angle,True)
         if self.turn_count >= self.turn_skip:
-            sendme = self.pid.get(f_angle,True,True)
+            if self.initval:
+                self.pid.prev_value = f_angle
+                self.initval = False
+            #sendme = self.pid.get(f_angle,False,True)
+            sendme = round(.75*f_angle)
             self.ctl.steer(sendme)
             self.turn_count = 0
             self.last_angle = sendme

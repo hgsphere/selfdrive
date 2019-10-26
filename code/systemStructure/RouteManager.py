@@ -12,10 +12,6 @@ class RouteManager():
         self.stopDetectQ = None
         self.emergencyStopQ = None
 
-        self.angle = None
-        self.crosswalk = None
-        self.emergencyStop = None
-
         self.States = {
             "Init": 0,
             "Stop": 1,
@@ -41,13 +37,16 @@ class RouteManager():
 
         while True:
             self.angle = self.laneDetectQ.get()
+
             print(self.angle, end='\t')
             self.CROSSWALK = self.stopDetectQ.get()
+
             print(self.CROSSWALK, end='\t')
             self.EMERGENCY = self.emergencyStopQ.get()
+
             print(self.EMERGENCY, end='\t')
             self.RouteTick()
-            print(self.state)
+            # print(self.state)
 
     def RouteActions(self):
         # actions to take in each state
@@ -59,7 +58,7 @@ class RouteManager():
         elif self.state == self.States["Lane_Follow"]:
             if self.action_Taken == False:
                 self.asyncDrive.start_LaneFollowing()
-                print('Starting Lane Following')
+                # print('Starting Lane Following')
                 self.action_Taken = True
             self.asyncDrive.LaneFollow(self.angle)
         elif self.state == self.States["Force_Forward"]:
@@ -109,7 +108,7 @@ class RouteManager():
             self.state = self.routePlan()
 
         elif self.state == self.States["Lane_Follow"]:
-            print('Lane_Follow')
+            # print('Lane_Follow')
             if self.EMERGENCY:
                 self.action_Taken = False
                 self.state = self.States["Stop"]

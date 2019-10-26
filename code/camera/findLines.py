@@ -8,6 +8,8 @@ sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
 from contourPlus import contourPlus, warpPoints
 
+printOnce = 0
+
 
 def newColorSpace(img, cNum=2):
     hls = cv.cvtColor(img, cv.COLOR_BGR2HLS)
@@ -48,9 +50,10 @@ def cleanupImage(img):
     smoothed2 = cv.GaussianBlur(threshWhite, (kSz, kSz), 0)
 
     # mask the 2 images together
-    combined = cv.bitwise_or(smoothed, smoothed2)
-    combined = cv.bitwise_or(combined, blur_yellow)
-    return combined
+    combined = cv.bitwise_or(smoothed, blur_yellow)
+
+    # displayImage("combined", combined)
+    return combined, smoothed2
 
 
 def houghLines(img):
@@ -94,7 +97,13 @@ def within(x, target, threshold):
         return False
 
 
-def getLinesPoints(img, lines, debug=False):
+def getLinesPoints(img, lines, debug=False, lineCnt=2):
+    if lines is None:
+        if debug:
+            return [None, None], cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+        else:
+            return [None, None]
+
     height = img.shape[0]
     width = img.shape[1]
 
@@ -111,7 +120,12 @@ def getLinesPoints(img, lines, debug=False):
             xInt = (height - b) / m
             slopes.append([m, xInt])
 
-    pp = PrettyPrinter()
+    if len(slopes) == 0:
+        if debug:
+            return [None, None], cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+        else:
+            return [None, None]
+    # pp = PrettyPrinter()
     # pp.pprint(slopes)
 
     # histogram of x-intercepts
@@ -121,7 +135,7 @@ def getLinesPoints(img, lines, debug=False):
     withinVal = width // binNum
     hist, bins = np.histogram(x_intercepts, bins=12)
 
-    histSort = hist.argsort()[-2:]
+    histSort = hist.argsort()[-lineCnt:]
     binLanes = sorted([int(bins[x]) for x in histSort])
     lanes = []
     weights = []
@@ -131,11 +145,13 @@ def getLinesPoints(img, lines, debug=False):
         if not slope:
             slope = [x for x in slopes if within(x[1], l, withinVal*2)]
             if not slope:
-                return None
+                return [None, None]
         weights.append(len(slope))
         slopeList, intcList = list(zip(*slope))
+
         avgSlope = np.mean(np.asarray(slopeList))
         avgInt = int(np.mean(np.asarray(intcList)))
+
         p0 = (avgInt, height)
         p1 = (avgInt - int(height / avgSlope), 0)
         lanes.append([p0, p1])
@@ -160,6 +176,9 @@ def getContours(canny):
         _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     else:
         contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    if len(contours) is 0:
+        print("error contours has length 0")
+        return None
 
     # get extra data about the contours
     contours2 = [contourPlus(x) for x in contours]
@@ -168,7 +187,9 @@ def getContours(canny):
     # for c in contours2:
     #     print(c.getArea())
     # get the average
+
     mean = np.mean([c.getArea() for c in contours2])
+
     # sd = np.std([c.getArea() for c in contours2])
     if len(contours2) > 4:
         # accept anything above the mean
@@ -299,41 +320,44 @@ def addImageQuadrant(bigImg, img, quadrant):
 
 # example input of too close
 # [[(505, 480), (147, 0)], [(518, 480), (283, 0)]]
-def fixLaneData(img, leftLane, rightLane):
+def fixLaneData(img, whiteLines, yellowLines):
+    # print(whiteLines)
+    # print(yellowLines)
     width = img.shape[1]
     withinVal = width // 12
     midPt = width // 2
+
+    leftSide = None
+    rightSide = None
+    # find the right lane
+    for l in whiteLines:
+        if l is None:
+            continue
+        if l[0][0] > midPt:
+            rightSide = l
+        if l[0][0] < midPt:
+            leftSide = l
+
     # estimates for average lane width
-    # bottomLaneWidth = 250
-    # topLaneWidth = 350
     bottomLaneWidth = 150
     topLaneWidth = 150
-    # unpack
-    lP0, lP1 = leftLane
-    rP0, rP1 = rightLane
+    yellowLane = yellowLines[0]
 
-    # if they are the same thing, or too close together,
-    #  then we need to invent the other side by estimating
-    #  the width of the lane
-
-    if leftLane == rightLane:
-        pass
-    elif within(lP0[0], rP0[0], withinVal):
-        pass
-    else:
-        return leftLane, rightLane
-
-    # closer to which side?
-    if lP0[0] > midPt:
-        # create new left lane
-        leftLane = [(rP0[0]-bottomLaneWidth, rP0[1]), (rP1[0]-topLaneWidth, rP1[1])]
-        # print("new left lane")
-    elif rP0[0] < midPt:
-        # create new right lane
+    if rightSide and (not yellowLane):
+        # invent a yellow line
+        rP0, rP1 = rightSide
+        leftLane = [(rP0[0] - bottomLaneWidth, rP0[1]), (rP1[0] - topLaneWidth, rP1[1])]
+        return leftLane, rightSide
+    elif (not rightSide) and yellowLane:
+        lP0, lP1 = yellowLane
         rightLane = [(lP0[0] + bottomLaneWidth, lP0[1]), (lP1[0] + topLaneWidth, lP1[1])]
-        # print("new right lane")
-
-    return leftLane, rightLane
+        return yellowLane, rightLane
+    elif yellowLane:
+        lP0, lP1 = yellowLane
+        rightLane = [(lP0[0] + bottomLaneWidth, lP0[1]), (lP1[0] + topLaneWidth, lP1[1])]
+        return yellowLane, rightLane
+    else:
+        return None, None
 
 
 def parseImage(path, hmg, invh, debug=False):
@@ -341,6 +365,7 @@ def parseImage(path, hmg, invh, debug=False):
     returns the line that describes the target to follow
     if debug is True, returns tuple that contains target and collage image
     """
+    global printOnce
 
     # allow passing the image in directly
     if isinstance(path, str):
@@ -358,54 +383,70 @@ def parseImage(path, hmg, invh, debug=False):
     # displayImage("warped", warped)
 
     # convert color space, threshold the image, remove noise
-    smoothed = cleanupImage(warped)
-#    smoothed = cleaenupImage(img)
+    yellowImg, whiteImg = cleanupImage(warped)
     # displayImage("smoothed", smoothed)
 
     # collage of images - original (w/ heading), smoothed, contours & canny, lanes
     if debug:
         collage = np.zeros_like(img)
         collage = addImageQuadrant(collage, img, 0)
-        collage = addImageQuadrant(collage, smoothed, 1)
+        collage = addImageQuadrant(collage, cv.bitwise_or(yellowImg, whiteImg), 1)
 
     try:
         # apply Canny edge detection
-        canny = cv.Canny(smoothed, 100, 200)
+        cannyWhite = cv.Canny(whiteImg, 100, 200)
+        cannyYellow = cv.Canny(yellowImg, 100, 200)
+        cannyBoth = cv.bitwise_or(cannyWhite, cannyYellow)
         # displayImage("Canny", canny)
-        contourImg = getContours(canny)
+        contourWhite = getContours(cannyWhite)
+        contourYellow = getContours(cannyYellow)
+        if contourWhite is None or contourYellow is None:
+            print("error no contours found")
+            return None
         # contourImg = cv.cvtColor(cannyColor, cv.COLOR_BGR2GRAY)
 
-        lines = houghLines(contourImg)
-        if not lines:
+        linesWhite = houghLines(contourWhite)
+        linesYellow = houghLines(contourYellow)
+        if (not linesWhite) and (not linesYellow):
             print('no lines found')
             return None
-        points = getLinesPoints(canny, lines, debug=debug)
-        if not points:
+
+        pointsWhite = getLinesPoints(cannyWhite, linesWhite, debug=debug)
+        pointsYellow = getLinesPoints(cannyYellow, linesYellow, debug=debug, lineCnt=1)
+        if (not pointsWhite) and (not pointsYellow):
             print('no points found')
             return None
         if debug:
-            points, laneImg = points
-            leftPoints, rightPoints = points
+            pointsWhite, laneImgWhite = pointsWhite
+            leftPointsWhite, rightPointsWhite = pointsWhite
+            pointsYellow, laneImgYellow = pointsYellow
         else:
-            leftPoints, rightPoints = points
+            leftPointsWhite, rightPointsWhite = pointsWhite
 
-        # print("original lanes: {}, {}".format(leftPoints, rightPoints))
-        leftLane, rightLane = fixLaneData(canny, leftPoints, rightPoints)
+        # print("white lanes: {}, {}".format(leftPointsWhite, rightPointsWhite))
+        # print("yellow lanes: {}".format(pointsYellow))
+        leftLane, rightLane = fixLaneData(cannyBoth, pointsWhite, pointsYellow)
         # print("new lanes: {}, {}".format(leftLane, rightLane))
         # sys.stdout.flush()
+        if leftLane is None:
+            origTarget = None
+        else:
+            # average middle line
+            target = getHeading(leftLane, rightLane, warped)
+            ot = warpPoints(target, invh)
+            # restructure
+            origTarget = ((ot[0][0][0], ot[0][0][1]), (ot[1][0][0], ot[1][0][1]))
+            # print(origTarget)
 
-        # average middle line
-        target = getHeading(leftLane, rightLane, warped)
-        ot = warpPoints(target, invh)
-        # restructure
-        origTarget = ((ot[0][0][0], ot[0][0][1]), (ot[1][0][0], ot[1][0][1]))
-        # print(origTarget)
+        if not printOnce:
+            printOnce = 1
+            cv.imwrite("overlay.jpeg", showHeading(origTarget, img))
 
         if debug:
             overlay = showHeading(origTarget, img)
             collage = addImageQuadrant(collage, overlay, 0)
-            collage = addImageQuadrant(collage, contourImg, 2)
-            collage = addImageQuadrant(collage, laneImg, 3)
+            collage = addImageQuadrant(collage, cv.bitwise_or(contourWhite, contourYellow), 2)
+            collage = addImageQuadrant(collage, cv.bitwise_or(laneImgWhite, laneImgYellow), 3)
             return origTarget, collage
         else:
             return origTarget

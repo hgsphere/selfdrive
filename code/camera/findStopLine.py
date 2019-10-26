@@ -33,6 +33,9 @@ def findContours(img):
 
     cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
     _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    if len(contours) is 0:
+        print("error length of contours is 0 (stp lines)")
+        return None
 
     cv.drawContours(cannyColor, contours, -1, (0, 255, 0), 3)
     # displayImage("canny", cannyColor)

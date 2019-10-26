@@ -13,9 +13,39 @@ import multiprocessing, logging
 #logger.warning('doomed')
 
 class Pollers():
-    def __init__(self, debugging):
+    def __init__(self, debugging=False):
         self.debugging = debugging
         self.clipping_distance = None
+        self.profile = None
+
+        self.config_frames_pipeline()
+
+    def config_frames_pipeline(self):
+        rs.log_to_console(rs.log_severity.info)
+        self.pipeline = rs.pipeline()
+        config = rs.config()
+        shape = (640, 480)
+        # shape_depth = (640, 480)
+        self.shape_rgb = (424, 240)
+
+        # shape_depth = (480,270)
+        frame_rate = 30
+        frame_rate_rgb = 60
+        # resolution = (640, 480)
+        # resolution = shape
+        # outPath = 'test.avi'
+        # self.out = cv.VideoWriter(outPath, cv.VideoWriter_fourcc('M','J','P','G'), frame_rate, resolution)
+
+        config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
+        # config.enable_stream(rs.stream.depth, shape_depth[0], shape_depth[1], rs.format.z16, frame_rate)
+        config.enable_stream(rs.stream.color, self.shape_rgb[0], self.shape_rgb[1], rs.format.bgr8, frame_rate_rgb)
+
+        self.profile = self.pipeline.start(config)
+        time.sleep(1)  # wait for warmup
+        depth_sensor = self.profile.get_device().first_depth_sensor()
+        depth_scale = depth_sensor.get_depth_scale()
+        clipping_distance_in_meters = 0.3
+        self.clipping_distance = clipping_distance_in_meters / depth_scale
 
     def processDepthFrame(self, depthData, width, height):
         depthFloat = np.zeros(depthData.shape, dtype=np.float32)
@@ -33,17 +63,8 @@ class Pollers():
         gauss = cv.GaussianBlur(depthFloat, (5, 5), -1)
         return gauss
 
-    def pollFrame(self, toLaneDetectQ, toEmergencyStopQ, toStopDetectQ):
+    def pollFrame(self):
         # retrieve frame from camera and place it in the input queue to the LaneDetector Data Interpreter
-        config = rs.config()
-        shape = (640, 480)
-        #shape = (320,240)
-        frame_rate = 30
-
-        config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
-        config.enable_stream(rs.stream.color, shape[0], shape[1], rs.format.bgr8, frame_rate)
-        pipeline = rs.pipeline()
-        print("pipeline created")
 
         # make a video writer
         # fourcc = cv.VideoWriter_fourcc(*"MJPG")
@@ -56,38 +77,32 @@ class Pollers():
 
         try:
             # Create a context object. This object owns the handles to all connected realsense devices
-            profile = pipeline.start(config)
-            depth_sensor = profile.get_device().first_depth_sensor()
-            depth_scale = depth_sensor.get_depth_scale()
-            clipping_distance_in_meters = 0.3
-            self.clipping_distance = clipping_distance_in_meters / depth_scale
 
-            print("pipeline started")
-            sys.stdout.flush()
+            # for i in range(60):
+            # time.sleep(0.01)
+            # This call waits until a new coherent set of frames is available on a device
+            # Calls to get_frame_data(...) and get_frame_timestamp(...) on a device will return stable values until wait_for_frames(...) is called
+            frames = self.pipeline.wait_for_frames(timeout_ms=10000)
+            # if not res:
+            #     return None, None
+            depth = frames.get_depth_frame()
+            color = frames.get_color_frame()
 
-            while True:
-                # for i in range(60):
-                time.sleep(0.01)
-                # This call waits until a new coherent set of frames is available on a device
-                # Calls to get_frame_data(...) and get_frame_timestamp(...) on a device will return stable values until wait_for_frames(...) is called
-                frames = pipeline.wait_for_frames()
-                depth = frames.get_depth_frame()
-                color = frames.get_color_frame()
-                if not depth:
-                    continue
+            #print("Next frame available")
+            colorData = np.asanyarray(color.get_data())
+            depthData = np.asanyarray(depth.get_data())
+            #print("pre process depth data")
+            # depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
 
-                #print("Next frame available")
-                colorData = np.asanyarray(color.get_data())
-                depthData = np.asanyarray(depth.get_data())
-                #print("pre process depth data")
-                depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
+            # print(toLaneDetectQ.qsize())
+            #print("filling queues...")
+            #logger.error('Here I am')
 
-                print(toLaneDetectQ.qsize())
-                #print("filling queues...")
-                #logger.error('Here I am')
-                toLaneDetectQ.put(colorData)
-                toStopDetectQ.put(colorData)
-                toEmergencyStopQ.put(depthFloat)
+            # toLaneDetectQ.put(colorData)
+            # toStopDetectQ.put(colorData)
+            # toEmergencyStopQ.put(depthFloat)
+            return colorData, depthData
+
 #                print("filled queues")
 
                 # Render images
@@ -113,9 +128,9 @@ class Pollers():
         #    print("    %s\n", e.what())
         #    exit(1)
         except Exception as e:
-            print('Did I make it')
+            # print('Did I make it')
             sys.stdout.flush()
             sys.stderr.write("exception hit\n")
-            sys.stderr.write(e)
+            sys.stderr.write(str(e))
             #logger.error(e)
             raise e

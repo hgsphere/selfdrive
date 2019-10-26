@@ -11,25 +11,25 @@ class EmergencyStopDetector(object):
     def __init__(self):
         pass
 
-    def detectStop(self, frameQ, outputQ):
+    def detectStop(self, frame):
         """Detects if we should stop the car
         frameQ - multiprocessing queue which will contain depth frames
         outputQ - queue to which this will post the decision made
         """
 
-        while True:
-            try:
-                # get the next frame from the queue
-                depthFrame = frameQ.get()
-                # check if we should stop
-                result = self.parseFrame(depthFrame)
-                # post the result to the output queue
-                outputQ.put(result)
-
-            except Exception as e:
-                # print any exceptions that occur, but keep going
-                print("Error in Emergency Stop Detector!")
-                print(e)
+        # while True:
+        try:
+            # get the next frame from the queue
+            # depthFrame = frameQ.get()
+            # check if we should stop
+            result = self.parseFrame(frame)
+            # post the result to the output queue
+            # outputQ.put(result)
+            return result
+        except Exception as e:
+            # print any exceptions that occur, but keep going
+            print("Error in Emergency Stop Detector!")
+            print(e)
 
     def maskImage(self, img):
         # width = img.shape[1]
@@ -52,7 +52,7 @@ class EmergencyStopDetector(object):
         # displayImage("depth", depthFrame)
 
         roi = self.maskImage(depthFrame)
-        displayImage("masked", roi)
+        # displayImage("masked", roi)
         # https://github.com/IntelRealSense/librealsense/tree/development/wrappers/opencv/depth-filter
 
         return self.checkForCloseObject(roi)
