@@ -63,6 +63,7 @@ class control:
         self.INIT_DELAY = INIT_DELAY
 
         # init everyting
+        self.serial = None
         self.serial_connect()
         time.sleep(2) # This wait is needed or else the configs don't take effect
 #        self.init_history()
@@ -74,7 +75,6 @@ class control:
         self.straight = None
         self.start = None
         self.init_speed = None
-        self.serial = None
 
         self.pid = None
         self.pid_kp = None
@@ -268,13 +268,13 @@ class control:
     """
     def serial_connect(self):
         self.serial = serial.Serial(ARDUINO_SERIAL, 115200)     # Assumed Baud rate
-        self.serial.flushInput()    # This might make the wheels turn full left every so often
+        #self.serial.flushInput()    # This might make the wheels turn full left every so often
         print('INFO: Arduino Connection Established')
 
     """Closes Serial Connection to Arduio 
         TODO :  figure out what needs to be done to prevent wheel from turning full left
     """
     def serial_close(self):
-        self.serial.flushInput()    # This might prevent the wheels from turning
+        #self.serial.flushInput()    # This might prevent the wheels from turning
         self.serial.close()
         print('INFO: Arduino Connection Closed')
