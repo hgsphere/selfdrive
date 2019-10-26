@@ -2,7 +2,6 @@ import os
 import sys
 import cv2 as cv
 import numpy as np
-from pprint import PrettyPrinter
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
@@ -125,8 +124,6 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
             return [None, None], cv.cvtColor(img, cv.COLOR_GRAY2BGR)
         else:
             return [None, None]
-    # pp = PrettyPrinter()
-    # pp.pprint(slopes)
 
     # histogram of x-intercepts
     x_intercepts = list(zip(*slopes))[1]
@@ -162,7 +159,6 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
     for p0, p1 in lanes:
         cv.line(imgColor, p0, p1, GREEN, 3)
 
-    # print(lanes)
     # displayImage("lanes", imgColor)
     if debug:
         return lanes, imgColor
@@ -184,10 +180,7 @@ def getContours(canny):
     contours2 = [contourPlus(x) for x in contours]
     # sort by the area
     contours2.sort(key=lambda x: x.getArea(), reverse=True)
-    # for c in contours2:
-    #     print(c.getArea())
     # get the average
-
     mean = np.mean([c.getArea() for c in contours2])
 
     # sd = np.std([c.getArea() for c in contours2])
@@ -304,7 +297,6 @@ def addImageQuadrant(bigImg, img, quadrant):
         p1 = (width, height)
     else:
         print("invalid quadrant!")
-        #print("invalid quadrant!", file=sys.stderr) there was some error here
         return None
 
     # subsample image
@@ -324,7 +316,6 @@ def fixLaneData(img, whiteLines, yellowLines):
     # print(whiteLines)
     # print(yellowLines)
     width = img.shape[1]
-    withinVal = width // 12
     midPt = width // 2
 
     leftSide = None
@@ -372,10 +363,9 @@ def parseImage(path, hmg, invh, debug=False):
         img = cv.imread(path, cv.IMREAD_COLOR)
     else:
         img = path
+
     kSz = 5
     # displayImage('input',img)
-    # element = cv.getStructuringElement(cv.MORPH_RECT, (kSz, kSz), (-1, -1))
-    # img = cv.morphologyEx(img, cv.MORPH_OPEN, element)
     warped = cv.warpPerspective(img, hmg, (img.shape[1], img.shape[0]))
     warped = cv.GaussianBlur(warped, (kSz, kSz), 0)
     # kill the top of the image

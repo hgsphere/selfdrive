@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath("../car"))
 from asyncDrive import asyncDrive
 
 
-class RouteManager():
+class RouteManager(object):
 
     def __init__(self):
         self.laneDetectQ = None

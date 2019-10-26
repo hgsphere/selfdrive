@@ -1,10 +1,8 @@
 import os
 import sys
-import pprint
 import cv2 as cv
 import numpy as np
 from math import ceil
-import numpy.polynomial.polynomial as poly
 
 sys.path.append(os.path.abspath(os.getcwd()))
 from calibrate import getHomographyMatrix
@@ -166,10 +164,7 @@ def sortLines(img, lines):
     # find groups of lines
     binNum = height // 24  # most white lines are 20 or fewer pixels across in the y dimension
     hist = np.histogram(yPoints, bins=binNum)
-    # print(hist)
-    # inds = np.digitize(yPoints, hist[1])
     gap = ceil(hist[1][1] - hist[1][0])
-    # print(inds)
 
     sortedLines = []
     for idx, binCnt in enumerate(hist[0]):
@@ -177,7 +172,6 @@ def sortLines(img, lines):
             continue
         # find all the ones in this bin
         s = [linePoints[i] for i in range(len(yPoints)) if within(yPoints[i], hist[1][idx], gap)]
-        # s = [linePoints[i] for i in range(len(inds)) if inds[i] == idx]
         sortedLines.append(s)
 
     if not sortedLines:
@@ -187,10 +181,6 @@ def sortLines(img, lines):
     avgLines = []
     for lineSet in sortedLines:
         if lineSet:
-            # print(" [")
-            # for l in lineSet:
-            #     print("   " + str(l))
-            # print(" ],")
             avgLines.append(getAvgLines(lineSet))
 
     # reject ones that are too short

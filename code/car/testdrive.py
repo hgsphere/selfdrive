@@ -3,7 +3,7 @@
 import driving
 import time
 
-#List of Useful driving values
+# List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = 0.8 
 STEER_STRAIGHT = 0
@@ -16,14 +16,16 @@ INIT_DELAY = .5
 
 drive = driving.control()
 
+
 def example():
     # Preset operations
-    drive.force_forward_test() # move forward for 2 seconds (test init values)
-    drive.force_right_turn() # turn right 25, and wait 1.4 seconds with a .3 init time
-    drive.force_left_turn() # turn left -25, and wait 1.4 seconds with a .3 init time
+    drive.force_forward_test()  # move forward for 2 seconds (test init values)
+    drive.force_right_turn()    # turn right 25, and wait 1.4 seconds with a .3 init time
+    drive.force_left_turn()     # turn left -25, and wait 1.4 seconds with a .3 init time
 
     # Example custom driving operation (wait .3 to start moving, turn 15 degrees for 2s)
-    drive.force_drive(2,15,0)
+    drive.force_drive(2, 15, 0)
+
 
 def dounut():
     # Do a Dounut
@@ -41,6 +43,7 @@ def dounut():
     time.sleep(2)
     drive.force_stop()
 
+
 def turnloop():
     for kk in range(2):
         for i in range(4):
@@ -49,6 +52,8 @@ def turnloop():
             drive.force_left_turn()
     drive.force_stop()
 
-# dounut()
-turnloop()
-# drive.force_right_turn()
+
+if __name__ == '__main__':
+    # dounut()
+    turnloop()
+    # drive.force_right_turn()

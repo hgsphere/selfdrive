@@ -1,11 +1,8 @@
 import os
 import sys
 import cv2 as cv
-from numpy import (arange,
-                   uint8,
-                   apply_along_axis)
 sys.path.append(os.path.abspath("../camera"))
-from findLines import displayImage
+
 
 class EmergencyStopDetector(object):
     def __init__(self):
@@ -19,12 +16,8 @@ class EmergencyStopDetector(object):
 
         # while True:
         try:
-            # get the next frame from the queue
-            # depthFrame = frameQ.get()
             # check if we should stop
             result = self.parseFrame(frame)
-            # post the result to the output queue
-            # outputQ.put(result)
             return result
         except Exception as e:
             # print any exceptions that occur, but keep going

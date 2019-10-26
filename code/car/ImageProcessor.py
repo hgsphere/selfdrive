@@ -3,13 +3,11 @@
 import os
 import sys
 import time
-import json
 import cv2 as cv
 import numpy as np
 import pyrealsense2 as rs
 
 sys.path.append(os.path.abspath(os.getcwd()))
-# sys.path.append(os.path.abspath("../utils/"))
 sys.path.append(os.path.abspath("../camera/"))
 sys.path.append(os.path.abspath("../systemStructure/"))
 from calibrate import getHomographyMatrix
@@ -22,53 +20,22 @@ from EmergencyStopDetector import EmergencyStopDetector
 VIEW = False
 CAR_CENTER_RATIO = 23/64
 
+
 class imageprocessor:
 
     def __init__(self):
         print('Init Transforms')
         self.compute_transforms()
 
-        print('Init Camera')
-        # self.config_frames_pipeline()
-
         self.emStopD = EmergencyStopDetector()
+        self.poller = None
 
     def compute_transforms(self):
         # SETUP once
         self.hmg = getHomographyMatrix("color-lowres")
         self.invh = getHomographyMatrix("color-lowres", inverse=True)
 
-    def config_frames_pipeline(self):
-        config = rs.config()
-        shape = (640, 480)
-        frame_rate = 30
-        resolution = (640, 480)
-        outPath = 'test.avi'
-        self.out = cv.VideoWriter(outPath, cv.VideoWriter_fourcc('M','J','P','G'), frame_rate, resolution)
-
-        config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
-        config.enable_stream(rs.stream.color, shape[0], shape[1], rs.format.bgr8, frame_rate)
-        self.pipeline = rs.pipeline()
-
-        self.pipeline.start(config)
-
-    def get_frame(self):
-        frames = self.pipeline.wait_for_frames()
-        depth = frames.get_depth_frame()
-        color = frames.get_color_frame()
-        # if not depth: 
-        #     continue
-
-        colorData = np.asanyarray(color.get_data())
-        depthData = np.asanyarray(depth.get_data())
-
-        # Render images
-        depth_colormap = np.asanyarray(cv.applyColorMap(
-                cv.convertScaleAbs(depthData, alpha=0.03), cv.COLORMAP_JET))
-        
-        return colorData, depth_colormap
-
-    def displayImage(self,name, mat):
+    def displayImage(self, name, mat):
             cv.imshow(name, mat)
             return cv.waitKey(0)
 
@@ -87,13 +54,6 @@ class imageprocessor:
 
     def getCorrectionAngle(self, frame):
         # frame is recent RGB image from car
-        # frame = cv.imread(RBG_IMAGE, cv.IMREAD_COLOR)
-        # target is (leftPts, rightPts)
-        # while True:
-            # t1 = time.perf_counter()
-        # frame = frame_laneDetectQ.get()
-        # t2 = time.perf_counter()
-        # print("time to get frame from q: {}".format(t2 - t1))
 
         target = parseImage(frame, self.hmg, self.invh)
 
@@ -103,23 +63,6 @@ class imageprocessor:
         else:
             angle = -666
         return angle
-            # laneDetect_routeManagerQ.put(angle)
-        # if debug:
-        #     target, overlay = target
-        # else:
-        #     pass
-        #     overlay = showHeading(target, frame)
-
-
-        # if VIEW:
-        #     overlay = showHeading(target, frame)
-        #     self.displayImage('overlay',overlay)
-        #     if CROSSWALK:
-        #         overlay = drawCrossBox(overlay, crossbox)
-        #         overlay = drawCrossLines(overlay, crossLines)
-        #     displayImage('overlay2',overlay)
-
-        # return angle,CROSSWALK
 
     def getCrosswalk(self, frame):
         # while True:
@@ -130,7 +73,6 @@ class imageprocessor:
         if (crossbox is not None) or (crossLines is not None):
             CROSSWALK = True
         return CROSSWALK
-        # stopDetect_routeManagerQ.put(CROSSWALK)
 
     def runImageProcessing(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emStopDetect_routeManagerQ):
         self.poller = Pollers()
@@ -152,33 +94,8 @@ class imageprocessor:
             laneDetect_routeManagerQ.put(angle)
             stopDetect_routeManagerQ.put(False)
             emStopDetect_routeManagerQ.put(False)
-            count+=1
-
-
-
-
-def testcapture():
-    print("Test Camera Capture and detection")
-    lf = imageprocessor()
-    time.sleep(1) # wait for warm up
-
-    while True:
-        try:
-
-            rbg,depth = lf.get_frame()
-            angle,CROSSWALK = lf.getCorrectionAngle(rbg)
-            
-            # print(angle,CROSSWALK)
-            result = {
-                "angle" : angle,
-                "crosswalk": CROSSWALK,
-            }
-            # print(json.dumps(result, indent=2), ",")
-        except Exception as e:
-            raise e
-            break
-    
+            count += 1
 
 
 if __name__ == "__main__":
-    testcapture()
+    print("Module is not runnable!")
