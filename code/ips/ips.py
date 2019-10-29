@@ -1,14 +1,16 @@
 #!/usr/bin/python3
-
+import json
 import os
 import sys
 from requests import get as rget
 import cv2 as cv
 from cv2 import imread, imshow, waitKey
 import numpy as np
-from pathfinding.core.diagonal_movement import DiagonalMovement
-from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
+import networkx as nx
+
+sys.path.append(os.getcwd())
+from digraph import (drawLine, drawPt, getPtName, decodePtName)
+
 
 ##############################################################################
 # The x,y coordinate system for the Indoor Positioning System (IPS)
@@ -46,22 +48,102 @@ crosswalk7 = [ (489,  635), (582,  727), (604,  702), (514,  610) ]
 validColors = ["Green", "Red", "Purple", "Light Blue", "Yellow"]
 
 
-def showGlobalImage():
-    path = "./Global.jpg"
-    image = imread(path)
-    imshow("global", image)
-    waitKey(0)
+def displayRouteImg(name, img):
+    """Resize image to fit the screen."""
+    width = img.shape[1]
+    height = img.shape[0]
+    targetHeight = 960
+    r = targetHeight / float(height)
+    targetWidth = int(width * r)
+
+    sz = (targetWidth, targetHeight)
+    smaller = cv.resize(img, sz, interpolation=cv.INTER_AREA)
+
+    cv.imshow(name, smaller)
+    while True:
+        key = cv.waitKey(0) & 0xFF
+        if key == ord('q'):
+            break
+
+
+def findClosestFeature(x, y):
+    """Given a point on the image, what is the closest feature on the road?"""
+    pass
 
 
 class IPS(object):
-    def __init__(self):
-        path = "./Global_mask.jpg"
-        self.image = imread(path)
-        # get it grayscale for now
-        self.mask_image = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
-        self.mask = cv.inRange(self.mask_image, 100, 255)
+    """Implements an interface with the IPS, as well as path finding algorithms."""
 
-    def getCurrentCoor(self, color):
+    def __init__(self):
+        # we're using a directed graph
+        self.graph = nx.DiGraph()
+        # load in the data from the graph file
+        with open("./graph.json", 'r') as jf:
+            self.graphDict = json.load(jf)
+            self.graph = nx.from_dict_of_dicts(self.graphDict, create_using=self.graph)
+        # also keep the image around
+        image_path = "./Global.jpg"
+        self.image = imread(image_path)
+
+    def findClosestGraphPoint(self, x, y):
+        """Given any point on the image, what is the closest point in the graph?"""
+        wMax = self.image.shape[1]
+        hMax = self.image.shape[0]
+        # distance formula
+        distMax = pow(wMax - x, 2) + pow(hMax - y, 2)
+
+        # find minimum distance
+        for node in self.graph:
+            xn, yn = decodePtName(node)
+            dist = pow(xn - x, 2) + pow(yn - y, 2)
+            if dist < distMax:
+                wMax = xn
+                hMax = yn
+                distMax = dist
+
+        # print("Closest point to {}, {} is {}, {}".format(x, y, wMax, hMax))
+        return wMax, hMax
+
+    def findPath(self, x0, y0, x1, y1):
+        """Find the shortest point between two points on the graph."""
+        # find the points in the graph that is closest to what we are given
+        c0 = self.findClosestGraphPoint(x0, y0)
+        c1 = self.findClosestGraphPoint(x1, y1)
+        # the name of the node in the graph
+        n0 = getPtName(*c0)
+        n1 = getPtName(*c1)
+
+        path = nx.shortest_path(self.graph, source=n0, target=n1)
+        return path
+
+    def displayPath(self, path):
+        """path is a list of node names in the graph.
+        This is great because we have encoded the coordinates in the node names.
+        """
+        img = np.copy(self.image)
+        for i in range(len(path)-1):
+            x0, y0 = decodePtName(path[i])
+            x1, y1 = decodePtName(path[i+1])
+
+            drawPt(img, x0, y0)
+            drawLine(img, (x0, y0), (x1, y1))
+
+        drawPt(img, x1, y1)
+        return img
+
+    def displayDirectedGraph(self):
+        """Display the entire graph overlaid on the image."""
+        img = np.copy(self.image)
+        for node, edges in self.graphDict.items():
+            x, y = decodePtName(node)
+            drawPt(img, x, y)
+            for nm, attr in edges.items():
+                pt1 = decodePtName(nm)
+                drawLine(img, (x, y), pt1)
+        return img
+
+    def getCurrentCoor(self, color="yellow"):
+        """Get the current IPS location of the car."""
         # validate request
         if color not in validColors:
             return 0, 0
@@ -81,49 +163,27 @@ class IPS(object):
 
 def main():
     ips = IPS()
+    # cv.namedWindow("graph")
+    cv.namedWindow("path")
 
-    # path stuff
-    matrix = ips.mask
-    width = matrix.shape[1]
-    height = matrix.shape[0]
-    grid = Grid(width=width, height=height, matrix=matrix)
+    # displayRouteImg("graph", ips.displayDirectedGraph())
 
-    start = grid.node(173, 492)
-    end = grid.node(762, 1539)
+    p0 = 110, 120
+    p1 = 700, 1550
+    RED = (0, 0, 255)
+    path = ips.findPath(*p0, *p1)
+    print(path)
 
-    finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
-    path, runs = finder.find_path(start, end, grid)
-    p0 = path[0]
-    g0 = grid.node(p0[0], p0[1])
-    print(p0)
-    print(g0)
+    pathImg = ips.displayPath(path)
+    drawPt(pathImg, *p0, color=RED)
+    drawLine(pathImg, p0, decodePtName(path[0]), color=RED)
+    drawPt(pathImg, *p1, color=RED)
+    drawLine(pathImg, decodePtName(path[-1]), p1, color=RED)
 
-    color = ips.image
-    for pt in path:
-        cv.circle(color, pt, 2, (0, 255, 0), 2)
+    displayRouteImg("path", pathImg)
 
-    cv.imshow("mask", color)
-    cv.waitKey(0)
-    print("Hello there!")
+    cv.destroyAllWindows()
 
 
 if __name__ == '__main__':
     main()
-
-
-
-#########################
-# Each node has:
-# closed
-# f
-# g
-# h
-# opened
-# parent
-# retain_count
-# tested
-# walkable
-# weight
-# x
-# y
-#########################
