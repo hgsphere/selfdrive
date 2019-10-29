@@ -4,9 +4,10 @@ import os
 import sys
 from requests import get as rget
 import cv2 as cv
-from cv2 import imread, imshow, waitKey
 import numpy as np
-import networkx as nx
+from networkx import (DiGraph as nx_DiGraph,
+                      from_dict_of_dicts as nx_from_dict_of_dicts,
+                      shortest_path as nx_shortest_path)
 
 sys.path.append(os.getcwd())
 from digraph import (drawLine, drawPt, getPtName, decodePtName)
@@ -51,14 +52,14 @@ class IPS(object):
 
     def __init__(self):
         # we're using a directed graph
-        self.graph = nx.DiGraph()
+        self.graph = nx_DiGraph()
         # load in the data from the graph file
         with open("./graph.json", 'r') as jf:
             self.graphDict = json.load(jf)
-            self.graph = nx.from_dict_of_dicts(self.graphDict, create_using=self.graph)
+            self.graph = nx_from_dict_of_dicts(self.graphDict, create_using=self.graph)
         # also keep the image around
         image_path = "./Global.jpg"
-        self.image = imread(image_path)
+        self.image = cv.imread(image_path)
 
     def findClosestGraphPoint(self, x, y):
         """Given any point on the image, what is the closest point in the graph?"""
@@ -80,7 +81,9 @@ class IPS(object):
         return wMax, hMax
 
     def findPath(self, x0, y0, x1, y1):
-        """Find the shortest point between two points on the graph."""
+        """Find the shortest point between two points on the graph.
+        Returns a list of x,y tuples.  May or may not include the original points.
+        """
         # find the points in the graph that is closest to what we are given
         c0 = self.findClosestGraphPoint(x0, y0)
         c1 = self.findClosestGraphPoint(x1, y1)
@@ -88,8 +91,10 @@ class IPS(object):
         n0 = getPtName(*c0)
         n1 = getPtName(*c1)
 
-        path = nx.shortest_path(self.graph, source=n0, target=n1)
-        return path
+        path = nx_shortest_path(self.graph, source=n0, target=n1)
+        # convert to int
+        pathInt = [decodePtName(n) for n in path]
+        return pathInt
 
     def displayPath(self, path):
         """path is a list of node names in the graph.
@@ -97,8 +102,8 @@ class IPS(object):
         """
         img = np.copy(self.image)
         for i in range(len(path)-1):
-            x0, y0 = decodePtName(path[i])
-            x1, y1 = decodePtName(path[i+1])
+            x0, y0 = path[i]
+            x1, y1 = path[i+1]
 
             # drawPt(img, x0, y0)
             drawLine(img, (x0, y0), (x1, y1))
@@ -142,16 +147,13 @@ def pointClick(event, x, y, flags, params):
         img = np.copy(params[0])
 
         # find nearest feature
-        ft = features.findClosestFeature(x, y)
-        print("{} at {}".format(ft.name, ft.center))
+        ft, dist = features.findClosestFeature(x, y)
+        print("{} at {}, {} pixels away".format(ft.name, ft.center, int(dist)))
 
         # visualize
         drawPt(img, x, y)
         drawPt(img, ft.center[0], ft.center[1])
         cv.imshow("features", img)
-
-    else:
-        pass
 
 
 def testFeatureFinding(ips):
@@ -168,17 +170,17 @@ def testFeatureFinding(ips):
 
 def testPathFinding(ips):
     cv.namedWindow("path")
-    p0 = 300, 220
-    p1 = 700, 1350
+    p0 = 300, 520
+    p1 = 700, 1450
     RED = (0, 0, 255)
 
     path = ips.findPath(*p0, *p1)
     pathImg = ips.displayPath(path)
 
     drawPt(pathImg, *p0, color=RED)
-    drawLine(pathImg, p0, decodePtName(path[0]), color=RED)
+    drawLine(pathImg, p0, path[0], color=RED)
     drawPt(pathImg, *p1, color=RED)
-    drawLine(pathImg, decodePtName(path[-1]), p1, color=RED)
+    drawLine(pathImg, path[-1], p1, color=RED)
 
     displayRouteImg("path", pathImg)
     return
@@ -186,6 +188,7 @@ def testPathFinding(ips):
 
 def main():
     ips = IPS()
+    # displayRouteImg("path", ips.displayDirectedGraph())
 
     testPathFinding(ips)
     # testFeatureFinding(ips)

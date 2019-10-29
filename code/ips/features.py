@@ -1,5 +1,6 @@
-import cv2 as cv
-import numpy as np
+from cv2 import moments
+from numpy import array as np_array
+from math import sqrt
 
 ##############################################################################
 # In this file, we define features of the map in terms of their pixel
@@ -23,7 +24,7 @@ class FeatureLine(Feature):
 class FeaturePolygon(Feature):
     def __init__(self, n, p):
         super().__init__(n, p)
-        M = cv.moments(np.array(p))
+        M = moments(np_array(p))
         cX = int(M["m10"] / M["m00"])
         cY = int(M["m01"] / M["m00"])
         self.center = cX, cY
@@ -99,6 +100,7 @@ def findClosestFeature(x, y, l=None):
     This is in raw distance, not necessarily along a valid path.
     Distance is computed to the center-point of the feature.
     Returns the Feature object it's closest to, or None.
+    Also returns the straight-line distance to that feature.
     """
     if l is None:
         l = allFeatures
@@ -106,18 +108,18 @@ def findClosestFeature(x, y, l=None):
     wMax = IMG_W
     hMax = IMG_H
     # distance formula
-    distMax = pow(wMax - x, 2) + pow(hMax - y, 2)
+    distMax = sqrt(pow(wMax - x, 2) + pow(hMax - y, 2))
     retFeature = None
 
     # find minimum distance
     for f in l:
         xn, yn = f.center
-        dist = pow(xn - x, 2) + pow(yn - y, 2)
+        dist = sqrt(pow(xn - x, 2) + pow(yn - y, 2))
         if dist < distMax:
             distMax = dist
             retFeature = f
 
-    return retFeature
+    return retFeature, distMax
 
 
 def findClosestStopLine(x, y):
