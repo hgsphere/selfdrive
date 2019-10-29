@@ -10,6 +10,7 @@ import networkx as nx
 
 sys.path.append(os.getcwd())
 from digraph import (drawLine, drawPt, getPtName, decodePtName)
+import features
 
 
 ##############################################################################
@@ -17,38 +18,14 @@ from digraph import (drawLine, drawPt, getPtName, decodePtName)
 # is defined to have the origin in the upper right corner of the image.
 # The x-axis goes down the right side of the image, and the y-axis along
 # the top.
-#
-# In this file, we define features of the map in terms of their pixel
-# coordinates.
+# But, we rotated the image so it matches the OpenCV way of doing things.
 ##############################################################################
 
-stopSign0  = [ (148,    5), (141,  126), (266,  124), (267,    3) ]
-stopLine0  = [ (303,    3), (303,   58) ]
-stopLine1  = [ (207,  161), (270,  161) ]
-crosswalk0 = [ (268,   10), (266,  125), (291,  124), (292,    9) ]
-crosswalk1 = [ (151,  126), (151,  151), (267,  151), (266,  125) ]
-
-stopSign1  = [ (797, 1441), (796, 1566), (919, 1567), (925, 1440) ]
-stopLine2  = [ (791, 1401), (850, 1400) ]
-stopLine3  = [ (754, 1512), (754, 1567) ]
-crosswalk2 = [ (795, 1417), (796, 1441), (912, 1439), (912, 1415) ]
-crosswalk3 = [ (771, 1442), (769, 1558), (796, 1558), (796, 1441) ]
-
-fourWayStop= [ (447,  636), (356,  727), (360,  770), (452,  860),
-               (490,  862), (582,  767), (582,  727), (489,  635) ]
-stopLine4  = [ (366,  650), (324,  694) ]
-stopLine5  = [ (373,  847), (418,  894) ]
-stopLine6  = [ (567,  848), (613,  801) ]
-stopLine7  = [ (524,  601), (565,  643) ]
-crosswalk4 = [ (421,  613), (334,  704), (356,  727), (447,  636) ]
-crosswalk5 = [ (360,  770), (336,  795), (426,  885), (452,  860) ]
-crosswalk6 = [ (582,  767), (490,  862), (516,  888), (605,  792) ]
-crosswalk7 = [ (489,  635), (582,  727), (604,  702), (514,  610) ]
 
 validColors = ["Green", "Red", "Purple", "Light Blue", "Yellow"]
 
 
-def displayRouteImg(name, img):
+def displayRouteImg(name, img, wait=True):
     """Resize image to fit the screen."""
     width = img.shape[1]
     height = img.shape[0]
@@ -60,15 +37,13 @@ def displayRouteImg(name, img):
     smaller = cv.resize(img, sz, interpolation=cv.INTER_AREA)
 
     cv.imshow(name, smaller)
-    while True:
-        key = cv.waitKey(0) & 0xFF
-        if key == ord('q'):
-            break
-
-
-def findClosestFeature(x, y):
-    """Given a point on the image, what is the closest feature on the road?"""
-    pass
+    if wait:
+        while True:
+            key = cv.waitKey(0) & 0xFF
+            if key == ord('q'):
+                break
+    else:
+        return
 
 
 class IPS(object):
@@ -125,7 +100,7 @@ class IPS(object):
             x0, y0 = decodePtName(path[i])
             x1, y1 = decodePtName(path[i+1])
 
-            drawPt(img, x0, y0)
+            # drawPt(img, x0, y0)
             drawLine(img, (x0, y0), (x1, y1))
 
         drawPt(img, x1, y1)
@@ -161,26 +136,59 @@ class IPS(object):
         return latitude, longitude
 
 
-def main():
-    ips = IPS()
-    # cv.namedWindow("graph")
+def pointClick(event, x, y, flags, params):
+
+    if event == cv.EVENT_LBUTTONUP:
+        img = np.copy(params[0])
+
+        # find nearest feature
+        ft = features.findClosestFeature(x, y)
+        print("{} at {}".format(ft.name, ft.center))
+
+        # visualize
+        drawPt(img, x, y)
+        drawPt(img, ft.center[0], ft.center[1])
+        cv.imshow("features", img)
+
+    else:
+        pass
+
+
+def testFeatureFinding(ips):
+    cv.namedWindow("features")
+    cv.setMouseCallback("features", pointClick, param=(ips.image,))
+    cv.imshow("features", ips.image)
+
+    while True:
+        key = cv.waitKey(0) & 0xFF
+
+        if key == ord('q'):
+            break
+
+
+def testPathFinding(ips):
     cv.namedWindow("path")
-
-    # displayRouteImg("graph", ips.displayDirectedGraph())
-
-    p0 = 110, 120
-    p1 = 700, 1550
+    p0 = 300, 220
+    p1 = 700, 1350
     RED = (0, 0, 255)
-    path = ips.findPath(*p0, *p1)
-    print(path)
 
+    path = ips.findPath(*p0, *p1)
     pathImg = ips.displayPath(path)
+
     drawPt(pathImg, *p0, color=RED)
     drawLine(pathImg, p0, decodePtName(path[0]), color=RED)
     drawPt(pathImg, *p1, color=RED)
     drawLine(pathImg, decodePtName(path[-1]), p1, color=RED)
 
     displayRouteImg("path", pathImg)
+    return
+
+
+def main():
+    ips = IPS()
+
+    testPathFinding(ips)
+    # testFeatureFinding(ips)
 
     cv.destroyAllWindows()
 
