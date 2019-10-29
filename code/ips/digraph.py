@@ -19,7 +19,7 @@ def drawPt(img, x, y, color=(0, 255, 0)):
     cv.circle(img, (x, y), 2, color, 2)
 
 def drawLine(img, pt0, pt1, color=(0, 255, 0)):
-    cv.line(img, pt0, pt1, color, 2)
+    cv.arrowedLine(img, pt0, pt1, color, 2)
 
 
 def getClick(event, x, y, flags, params):
