@@ -1,7 +1,14 @@
+#!/usr/bin/python3
+
 import os
 import sys
 from requests import get as rget
+import cv2 as cv
 from cv2 import imread, imshow, waitKey
+import numpy as np
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
 
 ##############################################################################
 # The x,y coordinate system for the Indoor Positioning System (IPS)
@@ -40,33 +47,83 @@ validColors = ["Green", "Red", "Purple", "Light Blue", "Yellow"]
 
 
 def showGlobalImage():
-    path = "./Global.jpeg"
+    path = "./Global.jpg"
     image = imread(path)
     imshow("global", image)
     waitKey(0)
 
 
-def getCoor(color):
-    # validate request
-    if color not in validColors:
-        return 0, 0
+class IPS(object):
+    def __init__(self):
+        path = "./Global_mask.jpg"
+        self.image = imread(path)
+        # get it grayscale for now
+        self.mask_image = cv.cvtColor(self.image, cv.COLOR_BGR2GRAY)
+        self.mask = cv.inRange(self.mask_image, 100, 255)
 
-    # request data
-    URL = "http://192.168.1.8:8080/{}".format(color)
-    r = rget(url=URL)
+    def getCurrentCoor(self, color):
+        # validate request
+        if color not in validColors:
+            return 0, 0
 
-    # extract data
-    coorString = r.text
-    coordinates = coorString.split()
-    latitude = float(coordinates[0])
-    longitude = float(coordinates[1])
+        # request data
+        URL = "http://192.168.1.8:8080/{}".format(color)
+        r = rget(url=URL)
 
-    return latitude, longitude
+        # extract data
+        coorString = r.text
+        coordinates = coorString.split()
+        latitude = float(coordinates[0])
+        longitude = float(coordinates[1])
+
+        return latitude, longitude
 
 
 def main():
-    showGlobalImage()
+    ips = IPS()
+
+    # path stuff
+    matrix = ips.mask
+    width = matrix.shape[1]
+    height = matrix.shape[0]
+    grid = Grid(width=width, height=height, matrix=matrix)
+
+    start = grid.node(173, 492)
+    end = grid.node(762, 1539)
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
+    path, runs = finder.find_path(start, end, grid)
+    p0 = path[0]
+    g0 = grid.node(p0[0], p0[1])
+    print(p0)
+    print(g0)
+
+    color = ips.image
+    for pt in path:
+        cv.circle(color, pt, 2, (0, 255, 0), 2)
+
+    cv.imshow("mask", color)
+    cv.waitKey(0)
+    print("Hello there!")
 
 
 if __name__ == '__main__':
     main()
+
+
+
+#########################
+# Each node has:
+# closed
+# f
+# g
+# h
+# opened
+# parent
+# retain_count
+# tested
+# walkable
+# weight
+# x
+# y
+#########################
