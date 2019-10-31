@@ -18,7 +18,7 @@ from EmergencyStopDetector import EmergencyStopDetector
 
 # RBG_IMAGE = 'frame.jpeg'
 VIEW = False
-CAR_CENTER_RATIO = 23/64
+CAR_CENTER_RATIO = 24/64
 
 
 class imageprocessor:

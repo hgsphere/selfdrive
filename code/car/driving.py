@@ -20,8 +20,8 @@ DEFAULT_KD = 0.01
 
 # List of Useful driving values
 SPEED_STOP = 0
-SPEED_GO = .8
-SPEED_SLOW = .4     # 0.3 # min speed
+SPEED_GO = .6
+SPEED_SLOW = .2     # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -25
@@ -262,19 +262,57 @@ class control:
         self.pid_kp = kp
         self.pid_kd = kd
 
+    """Request encoder value and read result
+    """
+    def get_encoder(self):
+        self.push_command('!getEncoder\n')
+        time.sleep(.001)
+        value = self.serial.readline()
+        #print(value)
+        return round(float(value.decode()))
+
+    def get_speed(self):
+        self.push_command('!getSpeed\n')
+        time.sleep(.001)
+        value = self.serial.readline()
+        return round(float(value.decode()),2)
+
+    def get_distance(self):
+        self.push_command('!distance\n')
+        time.sleep(.001)
+        value = self.serial.readline()
+        return round(float(value.decode()),2)
+        
+
     ######################## SERIAL CONNECTION
 
     """Sets up Serial Connection to Arduio 
     """
     def serial_connect(self):
-        self.serial = serial.Serial(ARDUINO_SERIAL, 115200)     # Assumed Baud rate
+        self.serial = serial.Serial(ARDUINO_SERIAL, 115200, timeout=.5)     # Assumed Baud rate
         #self.serial.flushInput()    # This might make the wheels turn full left every so often
+        #self.serial.flushOutput()
         print('INFO: Arduino Connection Established')
+
+    """Read a number from Serial
+    """
+    def serial_read_num(self):
+        try:
+            while True:
+                line = self.serial.readline()
+                print(line) 
+                if line:
+                    num = float(line)
+                    return num
+        except Exception as e:
+            raise e
+        return -1
 
     """Closes Serial Connection to Arduio 
         TODO :  figure out what needs to be done to prevent wheel from turning full left
     """
     def serial_close(self):
         #self.serial.flushInput()    # This might prevent the wheels from turning
+        #self.serial.flushOutput()
         self.serial.close()
         print('INFO: Arduino Connection Closed')

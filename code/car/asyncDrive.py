@@ -12,17 +12,19 @@ from driving import control
 sys.path.append(os.path.abspath("."))
 from pid import PID
 
+FPS = 60 # frames per second
+SEE_AHEAD = .1 # how far ahead should the car react to
 
 class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        zz = np.zeros((1,20))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        zz = np.zeros((1,30))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=30)
         # print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
-        self.turn_skip = 0
+        self.turn_skip = 1
         self.turn_count = 0
         self.angle = 0
         self.m = 0
@@ -30,7 +32,8 @@ class asyncDrive:
         self.initval = True
         # self.pid = PID(1,0,1.25)
         # self.pid = PID(1,.0075,.75)
-        self.pid = PID(.9,.002,.45)
+        #self.pid = PID(.9,.002,.45)
+        self.pid = PID(.3,.05,.3)
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -73,6 +76,18 @@ class asyncDrive:
         self.angle = angle
         self.turn_count = self.turn_count + 1
 
+    def estimate_frame_offest(self):
+        speed = self.ctl.get_speed()
+        if speed == None or speed < 0  or speed > 2:
+            speed = .7
+
+        if speed == 0.0:
+            T = 0 
+        else:
+            T = SEE_AHEAD/speed
+        frame_delay = T*FPS
+        return round(frame_delay)
+
     def filter_angles(self):
         # returns filtered angle decision
         # data = np.array(self.angles)
@@ -80,20 +95,32 @@ class asyncDrive:
         data = [x if (x >= -30) else -30 for x in list(data)]
         #data = self.angles
         #kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
-        kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=0.6,n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=np.mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)
         means, covs = kf.filter(list(data))
-        estimate = means[14][0]
+        #estimate = means[14][0]
         self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])
         self.c = covs[0][0] #np.mean([covs[i][0] for i in range(9,19)])
         #diff = np.mean(np.diff(means,axis=0))*20
         # print(list(data))
         # print(means)
-        # print(covs)
+        #print(covs)
         # print(np.diff(means,axis=0))
         # print(diff)
         # print(list(data)[4:7])
         # print(np.cov(data))
-        avg = np.mean([means[i][0] for i in range(15,16)])
+        frame_delay = self.estimate_frame_offest()
+        print(frame_delay) 
+        if frame_delay == 0:
+            df = 27
+        elif frame_delay > 27:
+            df = 2
+        else:
+            df = 30 - frame_delay - 3
+
+        if df < 20:
+            df = 20
+        df = 24
+        avg = np.mean([means[i][0] for i in range(df-2,df+2)])
         # print("here")
         # print(avg)
         # print("here_after")
@@ -103,9 +130,19 @@ class asyncDrive:
         # estimate = estimate if (estimate >= -30) else -30
         return round(avg, 0)
 
+    def bin_angle(self,angle):
+        if angle >= 0:
+            return np.floor(angle/5)*5
+        else:
+            return np.ceil(angle/5)*5
+
     def LaneFollow(self, angle):
         # updates angle queue changes steering
         self.add_angle(angle)
+        
+        # test encoder
+        self.ctl.get_encoder()
+
 
         f_angle = self.filter_angles()
         #f_angle = self.angle*3/4
@@ -113,11 +150,11 @@ class asyncDrive:
        
         #self.pid.get(f_angle,True)
         if self.turn_count >= self.turn_skip:
-            if self.initval:
-                self.pid.prev_value = f_angle
-                self.initval = False
-            #sendme = self.pid.get(f_angle,False,True)
-            sendme = round(.75*f_angle)
-            self.ctl.steer(sendme)
+            #if self.initval:
+                #self.pid.prev_value = f_angle
+                #self.initval = False
+            sendme = self.pid.get(f_angle,True,True)
+            #sendme = round(.75*f_angle)
+            self.ctl.steer(self.bin_angle(sendme))
             self.turn_count = 0
             self.last_angle = sendme
