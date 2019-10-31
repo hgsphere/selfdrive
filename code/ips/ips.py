@@ -47,8 +47,27 @@ def displayRouteImg(name, img, wait=True):
         return
 
 
+def getCurrentCoor(color="yellow"):
+    """Get the current IPS location of the car."""
+    # validate request
+    if color not in validColors:
+        return 0, 0
+
+    # request data
+    URL = "http://192.168.1.8:8080/{}".format(color)
+    r = rget(url=URL)
+
+    # extract data
+    coorString = r.text
+    coordinates = coorString.split()
+    latitude = float(coordinates[0])
+    longitude = float(coordinates[1])
+
+    return latitude, longitude
+
+
 class IPS(object):
-    """Implements an interface with the IPS, as well as path finding algorithms."""
+    """Implements a path finding algorithm for navigating the course."""
 
     def __init__(self):
         # we're using a directed graph
@@ -122,26 +141,9 @@ class IPS(object):
                 drawLine(img, (x, y), pt1)
         return img
 
-    def getCurrentCoor(self, color="yellow"):
-        """Get the current IPS location of the car."""
-        # validate request
-        if color not in validColors:
-            return 0, 0
-
-        # request data
-        URL = "http://192.168.1.8:8080/{}".format(color)
-        r = rget(url=URL)
-
-        # extract data
-        coorString = r.text
-        coordinates = coorString.split()
-        latitude = float(coordinates[0])
-        longitude = float(coordinates[1])
-
-        return latitude, longitude
-
 
 def pointClick(event, x, y, flags, params):
+    """Callback function for showcasing the feature detection."""
 
     if event == cv.EVENT_LBUTTONUP:
         img = np.copy(params[0])
@@ -157,6 +159,11 @@ def pointClick(event, x, y, flags, params):
 
 
 def testFeatureFinding(ips):
+    """Displays the map of the course.  If you click on any pixel, it will draw
+    a circle on that pixel, and a circle at the center of the nearest feature.
+    Press 'q' to quit.
+    """
+
     cv.namedWindow("features")
     cv.setMouseCallback("features", pointClick, param=(ips.image,))
     cv.imshow("features", ips.image)
@@ -169,6 +176,10 @@ def testFeatureFinding(ips):
 
 
 def testPathFinding(ips):
+    """Finds the shortest path between p0 and p1.
+    These can be changed to test the correctness of paths.
+    """
+
     cv.namedWindow("path")
     p0 = 300, 520
     p1 = 700, 1450
