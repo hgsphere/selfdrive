@@ -202,13 +202,14 @@ def getContours(canny):
     return black
 
 
-def getHeading(leftPts, rightPts, img):
+def getHeading(leftPts, rightPts, img, multiplier=1.0):
+    """The multiplier is how much of the line you actually want to get back"""
     width = img.shape[1]
     height = img.shape[0]
 
     # average of top x value of points
     avgTopX = (leftPts[1][0] + rightPts[1][0]) // 2
-    avgTopY = 0
+    avgTopY = height * (1 - multiplier)
 
     # bottomX = width // 2
     # bottomX = 291   # according to transform
@@ -351,7 +352,7 @@ def fixLaneData(img, whiteLines, yellowLines):
         return None, None
 
 
-def parseImage(path, hmg, invh, debug=False):
+def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
     """parseImage
     returns the line that describes the target to follow
     if debug is True, returns tuple that contains target and collage image
@@ -422,7 +423,7 @@ def parseImage(path, hmg, invh, debug=False):
             origTarget = None
         else:
             # average middle line
-            target = getHeading(leftLane, rightLane, warped)
+            target = getHeading(leftLane, rightLane, warped, multiplier=lineMultiplier)
             ot = warpPoints(target, invh)
             # restructure
             origTarget = ((ot[0][0][0], ot[0][0][1]), (ot[1][0][0], ot[1][0][1]))
