@@ -74,7 +74,7 @@ class asyncDrive:
         self.ctl.force_stop()
 
     def add_angle(self, angle):
-        self.angles.append(self.bin_angle(angle/3))
+        self.angles.append(self.bin_angle(angle/3)) # 3 worked well
         self.angle = angle
         self.turn_count = self.turn_count + 1
 
