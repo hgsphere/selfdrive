@@ -44,7 +44,7 @@ def getClick(event, x, y, flags, params):
         drawLine(img, refPt, (x, y))
 
 
-def main():
+def editGraph():
     global img, G
     path = "./Global.jpg"
     img = cv.imread(path)
@@ -64,10 +64,10 @@ def main():
             drawLine(img, (x, y), pt1, color=RED)
 
     cv.namedWindow("image")
-    cv.setMouseCallback("image", getClick)
-    # cv.imshow("image", img)
-    # cv.waitKey(0)
-    # return
+    # cv.setMouseCallback("image", getClick)
+    cv.imshow("image", img)
+    cv.waitKey(0)
+    return
 
     while True:
         cv.imshow("image", img)
@@ -81,6 +81,46 @@ def main():
         data = nx.to_dict_of_dicts(G)
         # G = nx.from_dict_of_dicts(data)
         json.dump(data, jf, indent=2)
+
+
+routeList = []
+
+def clickRoute(event, x, y, flags, params):
+    global routeList
+
+    if event == cv.EVENT_LBUTTONUP:
+        image = params[0]
+        routeList.append(getPtName(x, y))
+
+        # where you clicked
+        drawPt(image, x, y)
+        cv.imshow("image", image)
+
+
+def defineRoute():
+    global img
+    path = "./Global.jpg"
+    img = cv.imread(path)
+
+    cv.namedWindow("image")
+    cv.setMouseCallback("image", clickRoute, param=(img,))
+    cv.imshow("image", img)
+
+    while True:
+        key = cv.waitKey(0) & 0xFF
+
+        if key == ord('q'):
+            break
+
+    cv.destroyAllWindows()
+    # dump the route to a file
+    with open("route.json", 'w') as jf:
+        json.dump(routeList, jf, indent=2)
+
+
+def main():
+    # editGraph()
+    defineRoute()
 
 
 if __name__ == '__main__':

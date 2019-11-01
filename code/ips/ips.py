@@ -5,6 +5,8 @@ import sys
 from requests import get as rget
 import cv2 as cv
 import numpy as np
+from math import sqrt
+from multiprocessing import Value
 from networkx import (DiGraph as nx_DiGraph,
                       from_dict_of_dicts as nx_from_dict_of_dicts,
                       shortest_path as nx_shortest_path)
@@ -26,11 +28,10 @@ import features
 validColors = ["Green", "Red", "Purple", "Light Blue", "Yellow"]
 
 
-def displayRouteImg(name, img, wait=True, targetHeight=960):
+def displayRouteImg(name, img, wait=True, targetHeight=740):
     """Resize image to fit the screen."""
     width = img.shape[1]
     height = img.shape[0]
-    targetHeight = 740
     r = targetHeight / float(height)
     targetWidth = int(width * r)
 
@@ -47,6 +48,34 @@ def displayRouteImg(name, img, wait=True, targetHeight=960):
         return
 
 
+def computeTurnDirection(nodes):
+    """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
+    if len(nodes) != 3:
+        print("Takes exactly 3 nodes")
+        raise IndexError
+    n0, n1, n2 = nodes
+    slopeTolerance = 10.0
+
+    # slopes
+    s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
+    s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
+    sdiff = s1 - s0
+
+    # make decision
+    if abs(sdiff) < slopeTolerance:
+        return "Force_Forward"
+    elif (s0 > 0) and (s1 < s0):
+        return "Force_Right_Turn"
+    elif (s0 <= 0) and abs(s1 < abs(s0)):
+        return "Force_Left_Turn"
+    else:
+        return "Force_Forward"
+
+
+# globals for coordinate values
+longitude = Value("d", 0.0)
+latitude = Value("d", 0.0)
+
 def getCurrentCoor(color="Yellow"):
     """Get the current IPS location of the car."""
     # validate request
@@ -60,16 +89,19 @@ def getCurrentCoor(color="Yellow"):
     # extract data
     coorString = r.text
     coordinates = coorString.split()
-    latitude = float(coordinates[0])
-    longitude = float(coordinates[1])
+    lat = float(coordinates[0])
+    lon = float(coordinates[1])
 
-    return latitude, longitude
+    return lat, lon
 
 def pollCoordinates(ips_routeManagerQ):
-    while True:
-        coords = getCurrentCoor()
-        ips_routeManagerQ.put_nowait(coords)
+    global latitude, longitude
 
+    while True:
+        lat, lon = getCurrentCoor()
+        latitude = lat
+        longitude = lon
+        # ips_routeManagerQ.put_nowait(coords)
 
 
 class IPS(object):
@@ -110,24 +142,27 @@ class IPS(object):
         # now call the pathfinder
         return self.findPath(x, y, *decodePtName(nextNode)), name
 
-    def findClosestGraphPoint(self, x, y):
+    def findClosestGraphPoint(self, x, y, getDist=False):
         """Given any point on the image, what is the closest point in the graph?"""
         wMax = self.image.shape[1]
         hMax = self.image.shape[0]
         # distance formula
-        distMax = pow(wMax - x, 2) + pow(hMax - y, 2)
+        distMax = sqrt(pow(wMax - x, 2) + pow(hMax - y, 2))
 
         # find minimum distance
         for node in self.graph:
             xn, yn = decodePtName(node)
-            dist = pow(xn - x, 2) + pow(yn - y, 2)
+            dist = sqrt(pow(xn - x, 2) + pow(yn - y, 2))
             if dist < distMax:
                 wMax = xn
                 hMax = yn
                 distMax = dist
 
         # print("Closest point to {}, {} is {}, {}".format(x, y, wMax, hMax))
-        return wMax, hMax
+        if getDist:
+            return wMax, hMax, distMax
+        else:
+            return wMax, hMax
 
     def findPath(self, x0, y0, x1, y1):
         """Find the shortest point between two points on the graph.

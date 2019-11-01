@@ -261,9 +261,12 @@ def showHeading(line, orig):
     return overlay
 
 
-def displayImage(name, mat):
+def displayImage(name, mat, wait=True):
     cv.imshow(name, mat)
-    return cv.waitKey(0)
+    if wait:
+        return cv.waitKey(0)
+    else:
+        return None
 
 
 def addImageQuadrant(bigImg, img, quadrant):

@@ -1,11 +1,14 @@
 import os
 import queue
 import sys
+import json
 
 sys.path.append(os.path.abspath("../car"))
 sys.path.append(os.path.abspath("../ips"))
 from asyncDrive import asyncDrive
-from ips import *
+from digraph import getPtName
+import ips
+import globals
 
 
 class RouteManager(object):
@@ -35,7 +38,12 @@ class RouteManager(object):
         self.COORDINATES = None
         # interface for driving
         self.asyncDrive = asyncDrive()
-        self.ips = IPS()
+        # route planning along the global path
+        self.ips = ips.IPS()
+        self.current_path = None
+        self.current_path_idx = 0
+        with open(os.path.join(globals.code_base_dir, "ips/route.json")) as jf:
+            self.route_critical_waypoints = json.load(jf)
 
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
         self.laneDetectQ = laneDetect_routeManagerQ
@@ -54,11 +62,12 @@ class RouteManager(object):
 
             print(self.EMERGENCY, end='\t')
 
-            try:
-                coords = self.ipsQ.get_nowait()
-                self.COORDINATES = coords
-            except queue.Empty as e:
-                pass
+            # try:
+            #     coords = self.ipsQ.get_nowait()
+            #     self.COORDINATES = coords
+            # except queue.Empty as e:
+            #     pass
+            self.COORDINATES = ips.latitude, ips.longitude
 
             self.RouteTick()
             # print(self.state)
@@ -92,16 +101,41 @@ class RouteManager(object):
                 self.action_Taken = True
 
     def routePlan(self):
-        # returns the next state
-        Route = ['Lane_Follow', 'Force_Forward', 'Lane_Follow', 'Force_Right_Turn', 'Lane_Follow', \
-                 'Force_Forward', 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Right_Turn', \
-                 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Left_Turn']
-        route = Route[self.COUNTER]
-        self.COUNTER += 1
-        if self.COUNTER > len(Route):
-            self.COUNTER = 0
+        # based on the current location, find the next stop line
+        self.current_path = self.ips.findNextStopLine(self.COORDINATES)
+        # which direction to turn?
+        return ips.computeTurnDirection(self.current_path[0:3])
 
-        return self.States[route]
+        # returns the next state
+        # Route = ['Lane_Follow', 'Force_Forward', 'Lane_Follow', 'Force_Right_Turn', 'Lane_Follow', \
+        #          'Force_Forward', 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Right_Turn', \
+        #          'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Left_Turn']
+        # route = Route[self.COUNTER]
+        # self.COUNTER += 1
+        # if self.COUNTER > len(Route):
+        #     self.COUNTER = 0
+        #
+        # return self.States[route]
+
+    def inRangeOfCritWaypoint(self):
+        """Are we in range of a critical waypoint? These are defined in route.json"""
+        w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        # if the node is the close one, and within a distance
+        if getPtName(w, h) == self.current_path[self.current_path_idx]:
+            if dist < 20.0:
+                # increment the critical waypoint index
+                self.current_path_idx += 1
+                return  True
+        return False
+
+    def inRangeOfStopLine(self):
+        """Are we in range of the next stop line? This is the last element in the current path list."""
+        w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        # if the node is the close one, and within a distance
+        if getPtName(w, h) == self.current_path[-1]:
+            if dist < 20.0:
+                return True
+        return False
 
     def emergencyStop(self):
         return self.EMERGENCY
@@ -137,10 +171,22 @@ class RouteManager(object):
             elif self.CROSSWALK:
                 self.action_Taken = False
                 self.state = self.States["Crosswalk_Stop"]
+
+            # things that additionally will be checked for stop:
+            #  in range of a critical waypoint
+            #  in range of the stop line
+            elif self.inRangeOfCritWaypoint():
+                self.state = self.States["Stop"]
+            elif self.inRangeOfStopLine():
+                self.state = self.States["Stop"]
+
             else:
                 self.state = self.States["Lane_Follow"]
 
         elif self.state == self.States["Force_Forward"]:
+            if self.current_path_idx == len(self.current_path):
+                # spin here forever
+                self.state = self.States["Stop"]
             if self.emergencyStop():
                 self.action_Taken = False
                 self.state = self.States["Stop"]
