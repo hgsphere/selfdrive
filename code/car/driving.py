@@ -14,14 +14,15 @@ HISTORY_FILE = 'command_history.txt'
 DEFAULT_STRAIGHT = 1560
 DEFUALT_START = 1685
 DEFUALT_SPEED = 0.6
-DEFAULT_PID = 1 
+DEFAULT_PID = 0 
 DEFAULT_KP = 0.01
 DEFAULT_KD = 0.01
+
 
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .2     # 0.3 # min speed
+SPEED_SLOW = .2   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -25

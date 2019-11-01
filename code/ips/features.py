@@ -132,3 +132,17 @@ def findClosestCrosswalk(x, y):
 
 def findClosestIntersection(x, y):
     return findClosestFeature(x, y, intersections)
+
+
+# for the purposes of the graph walker, define some stop line coordinates manually
+#  that correspond to points already on the graph
+graphStopLines = {
+    "303,29"    : "stopLine0",      # actual (303, 30)
+    "237,161"   : "stopLine1",      # actual (238, 161)
+    "833,1400"  : "stopLine2",      # actual (820, 1400)
+    "754,1538"  : "stopLine3",      # actual (754, 1539)
+    "341,672"   : "stopLine4",      # actual (345, 672)
+    "394,874"   : "stopLine5",      # actual (395, 870)
+    "590,828"   : "stopLine6",      # actual (590, 824)
+    "546,620"   : "stopLine7",      # actual (544, 622)
+}

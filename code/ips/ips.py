@@ -26,7 +26,7 @@ import features
 validColors = ["Green", "Red", "Purple", "Light Blue", "Yellow"]
 
 
-def displayRouteImg(name, img, wait=True):
+def displayRouteImg(name, img, wait=True, targetHeight=960):
     """Resize image to fit the screen."""
     width = img.shape[1]
     height = img.shape[0]
@@ -85,6 +85,30 @@ class IPS(object):
         # also keep the image around
         image_path = "./Global.jpg"
         self.image = cv.imread(image_path)
+        # TODO: determine the average distance between each node
+
+    def findNextStopLine(self, x, y):
+        """Instead of finding straight line distance,
+        walk along the graph until you run into a feature.
+        This will return a path just like the shortest path finder, with the name.
+        """
+        # get the closest graph point first
+        x_g, y_g = self.findClosestGraphPoint(x, y)
+        nextNode = getPtName(x_g, y_g)
+
+        # now walk until feature is found
+        while True:
+            # check if we've hit a feature
+            if nextNode in list(features.graphStopLines.keys()):
+                name = features.graphStopLines[nextNode]
+                break
+            else:
+                # we can always assume it will be the first element
+                #  because will run into feature before fan out
+                nextNode = next(iter(self.graph.neighbors(nextNode)))
+
+        # now call the pathfinder
+        return self.findPath(x, y, *decodePtName(nextNode)), name
 
     def findClosestGraphPoint(self, x, y):
         """Given any point on the image, what is the closest point in the graph?"""
@@ -127,13 +151,9 @@ class IPS(object):
         """
         img = np.copy(self.image)
         for i in range(len(path)-1):
-            x0, y0 = path[i]
-            x1, y1 = path[i+1]
+            drawLine(img, path[i], path[i+1])
 
-            # drawPt(img, x0, y0)
-            drawLine(img, (x0, y0), (x1, y1))
-
-        drawPt(img, x1, y1)
+        drawPt(img, *path[-1])
         return img
 
     def displayDirectedGraph(self):
@@ -152,15 +172,19 @@ def pointClick(event, x, y, flags, params):
     """Callback function for showcasing the feature detection."""
 
     if event == cv.EVENT_LBUTTONUP:
-        img = np.copy(params[0])
+        ips = params[0]
 
-        # find nearest feature
-        ft, dist = features.findClosestFeature(x, y)
-        print("{} at {}, {} pixels away".format(ft.name, ft.center, int(dist)))
+        path, name = ips.findNextStopLine(x, y)
+        print("{} at {}".format(name, path[-1]))
+        img = ips.displayPath(path)
 
         # visualize
-        drawPt(img, x, y)
-        drawPt(img, ft.center[0], ft.center[1])
+        RED = (0, 0, 255)
+        # where you clicked
+        drawPt(img, x, y, color=RED)
+        # nearest graph point
+        drawLine(img, (x, y), path[0], color=RED)
+
         cv.imshow("features", img)
 
 
@@ -171,7 +195,7 @@ def testFeatureFinding(ips):
     """
 
     cv.namedWindow("features")
-    cv.setMouseCallback("features", pointClick, param=(ips.image,))
+    cv.setMouseCallback("features", pointClick, param=(ips,))
     cv.imshow("features", ips.image)
 
     while True:
@@ -205,6 +229,7 @@ def testPathFinding(ips):
 
 def main():
     ips = IPS()
+    # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
     # displayRouteImg("path", ips.displayDirectedGraph())
 
     # testPathFinding(ips)

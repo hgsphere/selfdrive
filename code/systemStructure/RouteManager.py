@@ -19,10 +19,11 @@ class RouteManager(object):
         self.States = {
             "Init": 0,
             "Stop": 1,
-            "Lane_Follow": 2,
-            "Force_Forward": 3,
-            "Force_Right_Turn": 4,
-            "Force_Left_Turn": 5
+            "Crosswalk_Stop": 2,
+            "Lane_Follow": 3,
+            "Force_Forward": 4,
+            "Force_Right_Turn": 5,
+            "Force_Left_Turn": 6
         }
         self.state = self.States["Init"]
         # self.FORCED_DRIVE_DONE = False
@@ -68,6 +69,8 @@ class RouteManager(object):
             # do init stuff
             pass
         elif self.state == self.States["Stop"]:
+            pass
+        elif self.state == self.States["Crosswalk_Stop"]:
             pass
         elif self.state == self.States["Lane_Follow"]:
             if self.action_Taken == False:
@@ -121,6 +124,11 @@ class RouteManager(object):
             self.asyncDrive.stop()
             self.state = self.routePlan()
 
+        elif self.state == self.States["Crosswalk_Stop"]:
+            # if self.crosswalk_y > 400:
+            #    self.state = self.States["Stop"]
+            self.state = self.States["Stop"]
+
         elif self.state == self.States["Lane_Follow"]:
             # print('Lane_Follow')
             if self.EMERGENCY:
@@ -128,7 +136,7 @@ class RouteManager(object):
                 self.state = self.States["Stop"]
             elif self.CROSSWALK:
                 self.action_Taken = False
-                self.state = self.States["Stop"]
+                self.state = self.States["Crosswalk_Stop"]
             else:
                 self.state = self.States["Lane_Follow"]
 
