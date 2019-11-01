@@ -24,7 +24,7 @@ class asyncDrive:
         # print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
-        self.turn_skip = 1
+        self.turn_skip = 0
         self.turn_count = 0
         self.angle = 0
         self.m = 0
@@ -33,7 +33,9 @@ class asyncDrive:
         # self.pid = PID(1,0,1.25)
         # self.pid = PID(1,.0075,.75)
         #self.pid = PID(.9,.002,.45)
-        self.pid = PID(.3,.05,.3)
+        #self.pid = PID(.4,.0075,.7) ok with 600 I clip
+        #self.pid = PID(.9,.06,.5) great clip I 30
+        self.pid = PID(.9,.0015,.9)
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -72,7 +74,7 @@ class asyncDrive:
         self.ctl.force_stop()
 
     def add_angle(self, angle):
-        self.angles.append(angle)
+        self.angles.append(self.bin_angle(angle/3))
         self.angle = angle
         self.turn_count = self.turn_count + 1
 
@@ -108,19 +110,19 @@ class asyncDrive:
         # print(diff)
         # print(list(data)[4:7])
         # print(np.cov(data))
-        frame_delay = self.estimate_frame_offest()
-        print(frame_delay) 
-        if frame_delay == 0:
-            df = 27
-        elif frame_delay > 27:
-            df = 2
-        else:
-            df = 30 - frame_delay - 3
+        #frame_delay = self.estimate_frame_offest()
+        #print(frame_delay) 
+        #if frame_delay == 0:
+        #    df = 27
+        #elif frame_delay > 27:
+        #    df = 2
+        #else:
+        #    df = 30 - frame_delay - 3
 
-        if df < 20:
-            df = 20
-        df = 24
-        avg = np.mean([means[i][0] for i in range(df-2,df+2)])
+        #if df < 20:
+        #    df = 20
+        df = 28
+        avg = np.mean([means[i][0] for i in range(df-1,df+1)])
         # print("here")
         # print(avg)
         # print("here_after")
@@ -132,16 +134,16 @@ class asyncDrive:
 
     def bin_angle(self,angle):
         if angle >= 0:
-            return np.floor(angle/5)*5
+            return np.floor(angle/2)*2
         else:
-            return np.ceil(angle/5)*5
+            return np.ceil(angle/2)*2
 
     def LaneFollow(self, angle):
         # updates angle queue changes steering
         self.add_angle(angle)
         
         # test encoder
-        self.ctl.get_encoder()
+        #self.ctl.get_encoder()
 
 
         f_angle = self.filter_angles()
@@ -153,8 +155,8 @@ class asyncDrive:
             #if self.initval:
                 #self.pid.prev_value = f_angle
                 #self.initval = False
-            sendme = self.pid.get(f_angle,True,True)
-            #sendme = round(.75*f_angle)
+            sendme = self.pid.get(self.bin_angle(f_angle),True,True)
+            #sendme = f_angle#round(.75*f_angle)
             self.ctl.steer(self.bin_angle(sendme))
             self.turn_count = 0
             self.last_angle = sendme

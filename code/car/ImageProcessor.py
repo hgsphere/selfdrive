@@ -18,7 +18,7 @@ from EmergencyStopDetector import EmergencyStopDetector
 
 # RBG_IMAGE = 'frame.jpeg'
 VIEW = False
-CAR_CENTER_RATIO = 24/64
+CAR_CENTER_RATIO = 95/256
 
 
 class imageprocessor:
@@ -39,13 +39,34 @@ class imageprocessor:
             cv.imshow(name, mat)
             return cv.waitKey(0)
 
+    def get_half_target(self,target):
+        (p0,p1) = target
+        (bottomX, bottomY) = p0
+        (avgTopX, avgTopY) = p1
+        mid_X = (bottomX+avgTopX)/2
+        # If the line is straight return half topY
+        if bottomX-avgTopX == 0:
+            return ((bottomX,bottomY),(mid_X,(480-avgTopY)/2))
+
+        # calc slope (should never be 0)
+        m = float(avgTopY-bottomY)/ (avgTopX-bottomX)
+        b = bottomY - m*bottomX
+
+        # calc mid_Y
+        mid_Y = m*mid_X + b
+        #print(target)
+        #print((bottomX,bottomY),(mid_X,mid_Y))
+        return ((bottomX,bottomY),(mid_X,mid_Y))
+
     def calc_angle(self,target):
         # print(target)
-        (p0,p1) = target
+        half_target = self.get_half_target(target)
+        (p0,p1) = half_target
         (bottomX, bottomY) = p0
         (avgTopX, avgTopY) = p1 
         # (CAR_CENTER_RATIO*640,480)
         if bottomX-avgTopX == 0:
+            print('HELP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111')
             return 0
         angle = np.arctan((CAR_CENTER_RATIO*640 - avgTopX)/(avgTopY-bottomY))
         angle = 180*angle/np.pi
@@ -70,8 +91,21 @@ class imageprocessor:
         CROSSWALK = False
         crossbox, crossLines = findStopLine(frame, self.hmg, self.invh)
 
+        # Try thresholding the stop command if there is a cross walk close to the car
+        # Might try returning avg y value of Crossbox and cross lines to know how close the car is
+        # and make a state machine function to move till the y is close to the car
+        #if crossbox is not None:
+            #print(crossbox)
+        #    CROSSWALK = True
+
+        #if crossLines is not None:
+            #print(crossLines)
+        #    CROSSWALK = True
+
+        # If There are any crosswalks return true 
         if (crossbox is not None) or (crossLines is not None):
             CROSSWALK = True
+
         return CROSSWALK
 
     def runImageProcessing(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emStopDetect_routeManagerQ):
