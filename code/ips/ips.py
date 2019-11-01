@@ -30,7 +30,7 @@ def displayRouteImg(name, img, wait=True):
     """Resize image to fit the screen."""
     width = img.shape[1]
     height = img.shape[0]
-    targetHeight = 960
+    targetHeight = 740
     r = targetHeight / float(height)
     targetWidth = int(width * r)
 
@@ -47,7 +47,7 @@ def displayRouteImg(name, img, wait=True):
         return
 
 
-def getCurrentCoor(color="yellow"):
+def getCurrentCoor(color="Yellow"):
     """Get the current IPS location of the car."""
     # validate request
     if color not in validColors:
@@ -64,6 +64,12 @@ def getCurrentCoor(color="yellow"):
     longitude = float(coordinates[1])
 
     return latitude, longitude
+
+def pollCoordinates(ips_routeManagerQ):
+    while True:
+        coords = getCurrentCoor()
+        ips_routeManagerQ.put_nowait(coords)
+
 
 
 class IPS(object):
@@ -201,8 +207,8 @@ def main():
     ips = IPS()
     # displayRouteImg("path", ips.displayDirectedGraph())
 
-    testPathFinding(ips)
-    # testFeatureFinding(ips)
+    # testPathFinding(ips)
+    testFeatureFinding(ips)
 
     cv.destroyAllWindows()
 

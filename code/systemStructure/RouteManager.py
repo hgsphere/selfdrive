@@ -1,8 +1,11 @@
 import os
+import queue
 import sys
 
 sys.path.append(os.path.abspath("../car"))
+sys.path.append(os.path.abspath("../ips"))
 from asyncDrive import asyncDrive
+from ips import *
 
 
 class RouteManager(object):
@@ -11,6 +14,7 @@ class RouteManager(object):
         self.laneDetectQ = None
         self.stopDetectQ = None
         self.emergencyStopQ = None
+        self.ipsQ = None
 
         self.States = {
             "Init": 0,
@@ -27,13 +31,16 @@ class RouteManager(object):
         self.action_Taken = False
         self.CROSSWALK = False
         self.EMERGENCY = False
+        self.COORDINATES = None
         # interface for driving
         self.asyncDrive = asyncDrive()
+        self.ips = IPS()
 
-    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ):
+    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
         self.laneDetectQ = laneDetect_routeManagerQ
         self.stopDetectQ = stopDetect_routeManagerQ
         self.emergencyStopQ = emergencyStop_routeManagerQ
+        self.ipsQ = ips_routeManagerQ
 
         while True:
             self.angle = self.laneDetectQ.get()
@@ -45,6 +52,13 @@ class RouteManager(object):
             self.EMERGENCY = self.emergencyStopQ.get()
 
             print(self.EMERGENCY, end='\t')
+
+            try:
+                coords = self.ipsQ.get_nowait()
+                self.COORDINATES = coords
+            except queue.Empty as e:
+                pass
+
             self.RouteTick()
             # print(self.state)
 

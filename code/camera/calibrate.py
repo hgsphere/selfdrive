@@ -158,19 +158,19 @@ def main():
     # rgbSrc = getImg(rgbDir, rgbSrcName)
     # hmg = getHomographyMatrix("color")
     rgbDir = os.path.abspath("./tools")
-    rgbSrc = getImg(rgbDir, rgbLowSrcName, show=False)
+    rgbSrc = getImg(rgbDir, rgbLowSrcName, show=True)
     hmg = getHomographyMatrix("color-lowres")
     rgbOut = cv.warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
 
     cv.imshow("warpedRGB", rgbOut)
     cv.waitKey(0)
 
-    depSrc = getImg(depDir, depSrcName)
-    hmgDep = getHomographyMatrix("depth")
-    depOut = cv.warpPerspective(depSrc, hmgDep, (depSrc.shape[1], depSrc.shape[0]))
-
-    cv.imshow("warpedDep", depOut)
-    cv.waitKey(0)
+    # depSrc = getImg(depDir, depSrcName)
+    # hmgDep = getHomographyMatrix("depth")
+    # depOut = cv.warpPerspective(depSrc, hmgDep, (depSrc.shape[1], depSrc.shape[0]))
+    #
+    # cv.imshow("warpedDep", depOut)
+    # cv.waitKey(0)
 
     cv.destroyAllWindows()
 

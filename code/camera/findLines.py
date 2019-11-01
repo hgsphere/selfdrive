@@ -451,8 +451,9 @@ def parseImage(path, hmg, invh, debug=False):
 
 
 def main():
-    imgDir = os.path.abspath("../../testimages/lowres")
+    # imgDir = os.path.abspath("../../testimages/lowres")
     # imgDir = os.path.abspath("../../testvideo/frames")
+    imgDir = os.path.abspath("../../testimages/chessboard")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 

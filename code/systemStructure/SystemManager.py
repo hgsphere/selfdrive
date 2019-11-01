@@ -3,11 +3,13 @@
 import sys
 import os
 
+sys.path.append(os.path.abspath("../ips"))
 sys.path.append(os.path.abspath("../systemStructure"))
 sys.path.append(os.path.abspath("../car"))
 
 from ImageProcessor import imageprocessor
 from RouteManager import RouteManager
+from ips import *
 import multiprocessing as mp
 import threading
 from queue import Queue
@@ -21,7 +23,7 @@ class SystemManager(object):
         self.frame_emergencyStopQ = Queue(maxsize=60)
         self.frame_stopDetectQ = Queue(maxsize=60)
         # queues that the route manager pulls from
-        self.IPS_routeManagerQ = mp.Queue(maxsize=60)
+        self.IPS_routeManagerQ = mp.Queue(maxsize=1)
         self.laneDetect_routeManagerQ = mp.Queue(maxsize=60)
         self.emergencyStop_routeManagerQ = mp.Queue(maxsize=60)
         self.stopDetect_routeManagerQ = mp.Queue(maxsize=60)
@@ -44,7 +46,8 @@ class SystemManager(object):
         try:
             ctx = mp.get_context('fork')
             # IPS poller process setup and start
-
+            ipsPollProcess = ctx.Process(target=pollCoordinates, args=(self.IPS_routeManagerQ,), name="IPSPoller")
+            ipsPollProcess.start()
             # Lane detector process setup and start
             imageProcessorProcess = ctx.Process(target=self.imgProc.runImageProcessing,
                                                 args=(self.laneDetect_routeManagerQ,
@@ -57,13 +60,15 @@ class SystemManager(object):
             routeManagerProcess = ctx.Process(target=self.routeManager.runSupervisorStateMachine,
                                               args=(self.laneDetect_routeManagerQ,
                                                     self.stopDetect_routeManagerQ,
-                                                    self.emergencyStop_routeManagerQ),
+                                                    self.emergencyStop_routeManagerQ,
+                                                    self.IPS_routeManagerQ),
                                               name="RouteManager")
             routeManagerProcess.start()
     
             print("All processes started")
             # wait for everything to complete
             imageProcessorProcess.join()
+            ipsPollProcess.join()
             routeManagerProcess.join()
 
         except Exception as e:
