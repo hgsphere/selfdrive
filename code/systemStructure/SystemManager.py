@@ -46,8 +46,8 @@ class SystemManager(object):
         try:
             ctx = mp.get_context('fork')
             # IPS poller process setup and start
-            ipsPollProcess = ctx.Process(target=pollCoordinates, args=(self.IPS_routeManagerQ,), name="IPSPoller")
-            ipsPollProcess.start()
+            #ipsPollProcess = ctx.Process(target=pollCoordinates, args=(self.IPS_routeManagerQ,), name="IPSPoller")
+            #ipsPollProcess.start()
             # Lane detector process setup and start
             imageProcessorProcess = ctx.Process(target=self.imgProc.runImageProcessing,
                                                 args=(self.laneDetect_routeManagerQ,
@@ -68,7 +68,7 @@ class SystemManager(object):
             print("All processes started")
             # wait for everything to complete
             imageProcessorProcess.join()
-            ipsPollProcess.join()
+            #ipsPollProcess.join()
             routeManagerProcess.join()
 
         except Exception as e:

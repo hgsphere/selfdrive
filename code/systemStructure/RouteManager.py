@@ -2,6 +2,8 @@ import os
 import queue
 import sys
 import json
+import collections
+import numpy as np
 
 sys.path.append(os.path.abspath("../car"))
 sys.path.append(os.path.abspath("../ips"))
@@ -44,6 +46,9 @@ class RouteManager(object):
         self.current_path_idx = 0
         with open(os.path.join(globals.code_base_dir, "ips/route.json")) as jf:
             self.route_critical_waypoints = json.load(jf)
+
+        zz = np.zeros((1,30)) 
+        self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
 
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
         self.laneDetectQ = laneDetect_routeManagerQ
@@ -141,7 +146,12 @@ class RouteManager(object):
         return self.EMERGENCY
 
     def crosswalk(self):
-        return self.CROSSWALK
+        self.crossdeque.append(self.CROSSWALK)
+
+        if np.sum(list(self.crossdeque)[8:22]) > 8:
+            print(list(self.crossdeque))
+            return True
+        return False
 
     # def checkForceDrive(self):
     #     return self.asyncDrive.forceDriveDone
@@ -168,7 +178,7 @@ class RouteManager(object):
             if self.EMERGENCY:
                 self.action_Taken = False
                 self.state = self.States["Stop"]
-            elif self.CROSSWALK:
+            elif self.crosswalk():
                 self.action_Taken = False
                 self.state = self.States["Crosswalk_Stop"]
 
