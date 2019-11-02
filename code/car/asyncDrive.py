@@ -19,8 +19,8 @@ class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        zz = np.zeros((1,30))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=30)
+        zz = np.zeros((1,20))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
         # print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
@@ -35,7 +35,7 @@ class asyncDrive:
         #self.pid = PID(.9,.002,.45)
         #self.pid = PID(.4,.0075,.7) ok with 600 I clip
         #self.pid = PID(.9,.06,.5) great clip I 30
-        self.pid = PID(.9,.0015,.9)
+        self.pid = PID(1.5,.003,.8) # .9 .0015 .9 worked previously
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
@@ -74,7 +74,7 @@ class asyncDrive:
         self.ctl.force_stop()
 
     def add_angle(self, angle):
-        self.angles.append(self.bin_angle(angle/3)) # 3 worked well
+        self.angles.append(self.bin_angle(angle/4)) # 3 worked well
         self.angle = angle
         self.turn_count = self.turn_count + 1
 
@@ -121,7 +121,7 @@ class asyncDrive:
 
         #if df < 20:
         #    df = 20
-        df = 28
+        df = 18
         avg = np.mean([means[i][0] for i in range(df-1,df+1)])
         # print("here")
         # print(avg)
@@ -155,7 +155,7 @@ class asyncDrive:
             #if self.initval:
                 #self.pid.prev_value = f_angle
                 #self.initval = False
-            sendme = self.pid.get(self.bin_angle(f_angle),True,True)
+            sendme = self.pid.get(f_angle,True,True)
             #sendme = f_angle#round(.75*f_angle)
             self.ctl.steer(self.bin_angle(sendme))
             self.turn_count = 0

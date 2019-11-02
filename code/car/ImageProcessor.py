@@ -11,14 +11,14 @@ sys.path.append(os.path.abspath(os.getcwd()))
 sys.path.append(os.path.abspath("../camera/"))
 sys.path.append(os.path.abspath("../systemStructure/"))
 from calibrate import getHomographyMatrix
-from findLines import parseImage, displayImage, showHeading, cleanupImage, getContours
+from findLines import parseImage, displayImage, showHeading, cleanupImage, getContours, init_video
 from findStopLine import findStopLine, drawCrossBox, drawCrossLines
 from pollers import Pollers
 from EmergencyStopDetector import EmergencyStopDetector
 
 # RBG_IMAGE = 'frame.jpeg'
 VIEW = False
-CAR_CENTER_RATIO = 95/256
+CAR_CENTER_RATIO = 135/256
 
 
 class imageprocessor:
@@ -47,7 +47,7 @@ class imageprocessor:
         mid_X = (bottomX+avgTopX)/2
         # If the line is straight return half topY
         if bottomX-avgTopX == 0:
-            return ((bottomX,bottomY),(mid_X,(480-avgTopY)/2)) # was 480 but should be 480, but retuning required
+            return ((bottomX,bottomY),(mid_X,(240-avgTopY)/2)) # was 480 but should be 240, but retuning required
 
         # calc slope (should never be 0)
         m = float(avgTopY-bottomY)/ (avgTopX-bottomX)
@@ -69,7 +69,7 @@ class imageprocessor:
         if bottomX-avgTopX == 0:
             #print('HELP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111')
             return 0
-        angle = np.arctan((CAR_CENTER_RATIO*640 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
+        angle = np.arctan((CAR_CENTER_RATIO*424 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
         angle = 180*angle/np.pi
         # angle = 0
         return angle
@@ -97,18 +97,18 @@ class imageprocessor:
         # Might try returning avg y value of Crossbox and cross lines to know how close the car is
         # and make a state machine function to move till the y is close to the car
         if crossbox is not None:
-            print(crossbox)
+            #print(crossbox)
             avgY = 0
             for tar in crossbox:
                 (X,Y) = tar[0]
                 avgY = Y + avgY
             avgY = avgY/len(crossbox)
-            print(avgY)
+            #print(avgY)
             if avgY > 225:
                 CROSSWALK = True
 
         if crossLines is not None:
-            print(crossLines)
+            #print(crossLines)
             avgY = 0
             for tar in crossLines:
                 (p1,p2) = tar
@@ -118,7 +118,7 @@ class imageprocessor:
                 (p2X,p2Y) = tuple(p2[0])
                 avgY = avgY + p1Y + p2Y
             avgY = avgY/(len(crossLines)*2)
-            print(avgY)
+            #print(avgY)
             if avgY > 225:
                 CROSSWALK = True
 
@@ -135,6 +135,7 @@ class imageprocessor:
         #     color, depth = self.poller.pollFrame()
         print("starting actual image processing")
         count = 0
+        init_video()
         while True:
             color, depth = self.poller.pollFrame()
             # print("count: {}".format(count))
@@ -146,7 +147,7 @@ class imageprocessor:
             # emStop = self.emStopD.detectStop(depth)
             stopLines = self.getCrosswalk(color)
             laneDetect_routeManagerQ.put(angle)
-            stopDetect_routeManagerQ.put(stopLines)
+            stopDetect_routeManagerQ.put(False) #stopLines)
             emStopDetect_routeManagerQ.put(False)
             count += 1
 

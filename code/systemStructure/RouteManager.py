@@ -30,7 +30,7 @@ class RouteManager(object):
             "Force_Right_Turn": 5,
             "Force_Left_Turn": 6
         }
-        self.state = self.States["Init"]
+        self.state = self.States["Lane_Follow"] # The IPS code route planning doesn't return to the lanefollowing
         # self.FORCED_DRIVE_DONE = False
         self.COUNTER = 0
         self.angle = 0
@@ -44,6 +44,7 @@ class RouteManager(object):
         self.ips = ips.IPS()
         self.current_path = None
         self.current_path_idx = 0
+        print(os.path.join(globals.code_base_dir, "ips/route.json"))
         with open(os.path.join(globals.code_base_dir, "ips/route.json")) as jf:
             self.route_critical_waypoints = json.load(jf)
 
@@ -72,7 +73,7 @@ class RouteManager(object):
             #     self.COORDINATES = coords
             # except queue.Empty as e:
             #     pass
-            self.COORDINATES = ips.latitude, ips.longitude
+            self.COORDINATES = ips.latitude.value, ips.longitude.value
 
             self.RouteTick()
             # print(self.state)
@@ -105,28 +106,32 @@ class RouteManager(object):
                 self.asyncDrive.left_turn()
                 self.action_Taken = True
 
+###### CHANGES:  There were a couple of errors errors, I don't know if I fixed them, ips is commented out 
+######    At first the route.json file had an extra comma in it so it couldn't read the coordinates
+######    The self.COORINATES gets a weird multiprocess queue variabls so I used .value
     def routePlan(self):
         # based on the current location, find the next stop line
-        self.current_path = self.ips.findNextStopLine(self.COORDINATES)
+        #print(self.COORDINATES)
+        #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
         # which direction to turn?
-        return ips.computeTurnDirection(self.current_path[0:3])
+        #return ips.computeTurnDirection(self.current_path[0:3])
 
         # returns the next state
-        # Route = ['Lane_Follow', 'Force_Forward', 'Lane_Follow', 'Force_Right_Turn', 'Lane_Follow', \
-        #          'Force_Forward', 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Right_Turn', \
-        #          'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Left_Turn']
-        # route = Route[self.COUNTER]
-        # self.COUNTER += 1
-        # if self.COUNTER > len(Route):
-        #     self.COUNTER = 0
-        #
-        # return self.States[route]
+        Route = ['Lane_Follow', 'Force_Forward', 'Lane_Follow', 'Force_Right_Turn', 'Lane_Follow', \
+                 'Force_Forward', 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Right_Turn', \
+                 'Lane_Follow', 'Force_Left_Turn', 'Lane_Follow', 'Force_Left_Turn']
+        route = Route[self.COUNTER]
+        self.COUNTER += 1
+        if self.COUNTER > len(Route):
+            self.COUNTER = 0
+       
+        #return self.States[route]
 
     def inRangeOfCritWaypoint(self):
         """Are we in range of a critical waypoint? These are defined in route.json"""
         w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
         # if the node is the close one, and within a distance
-        if getPtName(w, h) == self.current_path[self.current_path_idx]:
+        if getPtName(w, h) == self.current_path[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
             if dist < 20.0:
                 # increment the critical waypoint index
                 self.current_path_idx += 1
@@ -148,7 +153,7 @@ class RouteManager(object):
     def crosswalk(self):
         self.crossdeque.append(self.CROSSWALK)
 
-        if np.sum(list(self.crossdeque)[8:22]) > 8:
+        if np.sum(list(self.crossdeque)[8:22]) > 5:
             print(list(self.crossdeque))
             return True
         return False
@@ -185,10 +190,12 @@ class RouteManager(object):
             # things that additionally will be checked for stop:
             #  in range of a critical waypoint
             #  in range of the stop line
-            elif self.inRangeOfCritWaypoint():
-                self.state = self.States["Stop"]
-            elif self.inRangeOfStopLine():
-                self.state = self.States["Stop"]
+###### NOT WORKING
+######    So there is nonetype error when checking the current_waypoint state, I gonna comment this out to tune LaneFollowing
+           # elif self.inRangeOfCritWaypoint():
+           #     self.state = self.States["Stop"]
+           # elif self.inRangeOfStopLine():
+           #     self.state = self.States["Stop"]
 
             else:
                 self.state = self.States["Lane_Follow"]

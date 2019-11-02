@@ -9,6 +9,21 @@ from contourPlus import contourPlus, warpPoints
 
 printOnce = 0
 
+## ADDED ability to save video
+SAVE_VIDEO = False
+
+writer_rbg = None
+def init_video():
+    global writer_rgb
+    shape_rgb = (424, 240)
+    frame_rate_rgb = 60
+    fourcc = cv.VideoWriter_fourcc(*"MJPG")                                                                                                                              
+    outpath_rgb = os.path.join(os.getcwd(), "logVideo.avi")                                                                                                        
+    #outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")                                                                                                      
+    writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,                                                                                                     
+        (shape_rgb[0], shape_rgb[1]), True)
+
+
 
 def newColorSpace(img, cNum=2):
     hls = cv.cvtColor(img, cv.COLOR_BGR2HLS)
@@ -361,6 +376,8 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
     if debug is True, returns tuple that contains target and collage image
     """
     global printOnce
+    global writer_rgb
+    global SAVE_VIDEO
 
     # allow passing the image in directly
     if isinstance(path, str):
@@ -431,10 +448,18 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
             # restructure
             origTarget = ((ot[0][0][0], ot[0][0][1]), (ot[1][0][0], ot[1][0][1]))
             # print(origTarget)
+            if SAVE_VIDEO:
+                #t = ((target[0][0][0], target[0][0][1]), (target[1][0][0], target[1][0][1]))
+                writer_rgb.write(warped)
 
         if not printOnce:
             printOnce = 1
             cv.imwrite("overlay.jpeg", showHeading(origTarget, img))
+
+        #if SAVE_VIDEO:
+        #    t = ((target[0][0][0], target[0][0][1]), (target[1][0][0], target[1][0][1]))
+        #    writer_rgb.write(showHeading(target, warped)) 
+
 
         if debug:
             overlay = showHeading(origTarget, img)
@@ -447,6 +472,7 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
     except Exception as e:
         raise e
+        sriter_rgb.close()
         if not debug:
             return None
         else:
