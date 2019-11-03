@@ -35,30 +35,31 @@ class asyncDrive:
         #self.pid = PID(.9,.002,.45)
         #self.pid = PID(.4,.0075,.7) ok with 600 I clip
         #self.pid = PID(.9,.06,.5) great clip I 30
-        self.pid = PID(1.5,.003,.8) # .9 .0015 .9 worked previously
+        self.pid = PID(.9,.0015,.9) # .9 .0015 .9 worked previously
 
     def start_LaneFollowing(self,):
         self.ctl.drive(self.ctl.SPEED_GO)
         self.ctl.drive(self.ctl.SPEED_SLOW)
 
     def right_turn(self):
-        if self.forceDriveDone:
+        if not self.forceDriveDone:
             right_thread = threading.Thread(target=self.async_right_turn())
             right_thread.start()
 
     def left_turn(self):
-        if self.forceDriveDone:
+        if not self.forceDriveDone:
             left_thread = threading.Thread(target=self.async_left_turn())
             left_thread.start()
 
     def forward(self):
-        if self.forceDriveDone:
+        if not self.forceDriveDone:
             forward_thread = threading.Thread(target=self.async_forward())
             forward_thread.start()
 
     def async_right_turn(self):
         self.forceDriveDone = False
         self.ctl.force_right_turn()
+        self.forceDriveDone = True
 
     def async_left_turn(self):
         self.forceDriveDone = False
@@ -74,7 +75,7 @@ class asyncDrive:
         self.ctl.force_stop()
 
     def add_angle(self, angle):
-        self.angles.append(self.bin_angle(angle/4)) # 3 worked well
+        self.angles.append(self.bin_angle(angle/3)) # 3 worked well
         self.angle = angle
         self.turn_count = self.turn_count + 1
 
@@ -155,7 +156,7 @@ class asyncDrive:
             #if self.initval:
                 #self.pid.prev_value = f_angle
                 #self.initval = False
-            sendme = self.pid.get(f_angle,True,True)
+            sendme = self.pid.get(self.bin_angle(f_angle),True,True)
             #sendme = f_angle#round(.75*f_angle)
             self.ctl.steer(self.bin_angle(sendme))
             self.turn_count = 0

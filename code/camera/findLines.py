@@ -165,7 +165,10 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
         avgInt = int(np.mean(np.asarray(intcList)))
 
         p0 = (avgInt, height)
-        p1 = (avgInt - int(height / avgSlope), 0)
+        if avgSlope == 0:
+            p1 = (avgInt,0)
+        else:
+            p1 = (avgInt - int(height / avgSlope), 0)
         lanes.append([p0, p1])
 
     imgColor = cv.cvtColor(img, cv.COLOR_GRAY2BGR)

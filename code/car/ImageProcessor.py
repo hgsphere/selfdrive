@@ -18,7 +18,8 @@ from EmergencyStopDetector import EmergencyStopDetector
 
 # RBG_IMAGE = 'frame.jpeg'
 VIEW = False
-CAR_CENTER_RATIO = 135/256
+#CAR_CENTER_RATIO = 140/256 #was 135
+CAR_CENTER_RATIO = 95/256 # for incorrect angle 
 
 
 class imageprocessor:
@@ -47,7 +48,7 @@ class imageprocessor:
         mid_X = (bottomX+avgTopX)/2
         # If the line is straight return half topY
         if bottomX-avgTopX == 0:
-            return ((bottomX,bottomY),(mid_X,(240-avgTopY)/2)) # was 480 but should be 240, but retuning required
+            return ((bottomX,bottomY),(mid_X,(480-avgTopY)/2)) # was 480 but should be 240, but retuning required
 
         # calc slope (should never be 0)
         m = float(avgTopY-bottomY)/ (avgTopX-bottomX)
@@ -69,7 +70,7 @@ class imageprocessor:
         if bottomX-avgTopX == 0:
             #print('HELP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111')
             return 0
-        angle = np.arctan((CAR_CENTER_RATIO*424 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
+        angle = np.arctan((CAR_CENTER_RATIO*640 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
         angle = 180*angle/np.pi
         # angle = 0
         return angle

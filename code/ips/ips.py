@@ -15,6 +15,9 @@ sys.path.append(os.getcwd())
 from digraph import (drawLine, drawPt, getPtName, decodePtName)
 import features
 
+# Import global to reference files by full path
+sys.path.append(os.path.abspath("../systemStructure"))
+import globals
 
 ##############################################################################
 # The x,y coordinate system for the Indoor Positioning System (IPS)
@@ -57,8 +60,16 @@ def computeTurnDirection(nodes):
     slopeTolerance = 10.0
 
     # slopes
-    s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
-    s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
+    if (n1[0] - n0[0]) == 0:
+        s0 = 1000
+    else:
+        s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
+
+    if (n2[0] - n1[0]) == 0:
+        s1 = 1000
+    else:
+        s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
+
     sdiff = s1 - s0
 
     # make decision
@@ -76,7 +87,11 @@ def computeTurnDirection(nodes):
 longitude = Value("d", 0.0)
 latitude = Value("d", 0.0)
 
+Glat = 0
+Glon = 0
 def getCurrentCoor(color="Yellow"):
+    global Glat
+    global Glon
     """Get the current IPS location of the car."""
     # validate request
     if color not in validColors:
@@ -89,18 +104,27 @@ def getCurrentCoor(color="Yellow"):
     # extract data
     coorString = r.text
     coordinates = coorString.split()
-    lat = float(coordinates[0])
-    lon = float(coordinates[1])
+    if coordinates is not None:
+        lat = float(coordinates[0])
+        lon = float(coordinates[1])
+        Glat = lat
+        Glon = lon
+    else:
+        lat = Glat
+        lon = Glon
 
     return lat, lon
 
-def pollCoordinates(ips_routeManagerQ):
-    global latitude, longitude
+#def pollCoordinates(ips_routeManagerQ):
+def pollCoordinates(lat,lon):
+    #global latitude, longitude
 
     while True:
-        lat, lon = getCurrentCoor()
-        latitude = lat
-        longitude = lon
+        _lat, _lon = getCurrentCoor()
+        lat.value = _lat
+        lon.value = _lon
+        #latitude = lat
+        #longitude = lon
         # ips_routeManagerQ.put_nowait(coords)
 
 
@@ -111,13 +135,14 @@ class IPS(object):
         # we're using a directed graph
         self.graph = nx_DiGraph()
         # load in the data from the graph file
-        with open("./graph.json", 'r') as jf:
+        with open(os.path.join(globals.code_base_dir,"ips/graph.json"), 'r') as jf:
             self.graphDict = json.load(jf)
             self.graph = nx_from_dict_of_dicts(self.graphDict, create_using=self.graph)
         # also keep the image around
-        image_path = "./Global.jpg"
+        image_path = os.path.join(globals.code_base_dir,"ips/Global.jpg")
         self.image = cv.imread(image_path)
         # TODO: determine the average distance between each node
+        
 
     def findNextStopLine(self, x, y):
         """Instead of finding straight line distance,

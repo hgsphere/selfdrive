@@ -13,7 +13,7 @@ HISTORY_FILE = 'command_history.txt'
 # List of Default calibration values
 DEFAULT_STRAIGHT = 1560
 DEFUALT_START = 1685
-DEFUALT_SPEED = 0.6
+DEFUALT_SPEED = 0.8#0.6
 DEFAULT_PID = 0 
 DEFAULT_KP = 0.01
 DEFAULT_KD = 0.01
@@ -22,7 +22,7 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .10   # 0.3 # min speed
+SPEED_SLOW = .01 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -25
@@ -112,19 +112,24 @@ class control:
         # Make sure the car is stopped
         self.force_stop()
         
+        print('INFO: Delay ({})'.format(.5))
         time.sleep(.5)
 
         print('INFO: Turning ({})'.format(angle))
         # Start turn
         self.drive(SPEED_GO)
         self.drive(SPEED_SLOW)
+
+        print('INFO: Delay ({})'.format(init_delay)) 
         time.sleep(init_delay)  # give it a second to pid to start
         self.steer(angle)
+        print('INFO: Delay ({})'.format(duration))
         time.sleep(duration)
 
         # Stop
         self.force_stop()
         print('INFO: Force Right Turn: Finished ')
+        print('INFO: Delay ({})'.format(2))
         time.sleep(2)
 
     """Force the Car to Move Forward
