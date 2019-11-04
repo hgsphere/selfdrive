@@ -23,6 +23,7 @@ class RouteManager(object):
         self.stopDetectQ = None
         self.emergencyStopQ = None
         self.ipsQ = None
+        self.name = None
 
         self.States = {
             "Init": 0,
@@ -94,8 +95,8 @@ class RouteManager(object):
     def RouteActions(self):
         # actions to take in each state
         if self.state == self.States["Init"]:
-            self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-            print(self.current_path,name)
+            self.current_path, self.name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            print(self.current_path,self.name)
         elif self.state == self.States["Stop"]:
             # self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
             pass
@@ -134,6 +135,10 @@ class RouteManager(object):
         #print(self.COORDINATES)
         # find the path to the next critical waypoint
         # use that data to determine the turn
+        if self.name is "stopLine0" or self.name is "stopLine3":
+            return self.States["Force_Left"]
+        elif self.name is "stopLine1" or self.name is "stopLine2":
+            return self.States["Force_Right"]
         nextTurnPath = self.ips.findPath(*self.COORDINATES,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
         if len(nextTurnPath) >= 3:
@@ -145,7 +150,7 @@ class RouteManager(object):
 
 
         # now from where the turn ends, find the next stop line
-        self.current_path, name = self.ips.findNextStopLine(*nextStart)
+        self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
 
         # return the next turn
         return nextTurn
