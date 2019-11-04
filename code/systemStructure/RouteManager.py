@@ -136,9 +136,9 @@ class RouteManager(object):
         # find the path to the next critical waypoint
         # use that data to determine the turn
         if self.name is "stopLine0" or self.name is "stopLine3":
-            return self.States["Force_Left"]
+            return self.States["Force_Left_Turn"]
         elif self.name is "stopLine1" or self.name is "stopLine2":
-            return self.States["Force_Right"]
+            return self.States["Force_Right_Turn"]
         nextTurnPath = self.ips.findPath(*self.COORDINATES,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
         if len(nextTurnPath) >= 3:
