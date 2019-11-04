@@ -41,9 +41,13 @@ def cleanupImage(img):
 
     # threshold to only keep yellow lines
     threshYellow = cv.inRange(satImg, 150, 255)
+    # displayImage("threshYellow", threshYellow)
     # apply a Gaussian blur to smooth edges and remove noise
     kSz = 7
     smoothed = cv.GaussianBlur(threshYellow, (kSz, kSz), 0)
+    # kill the part of the image that has the bumper in it
+    cv.rectangle(smoothed, (160, 200), (240, 239), color=0, thickness=-1)
+    smoothed = np.zeros_like(satImg)
     # displayImage("yellow thresh", smoothed)
 
     # get yellow from hsv
@@ -52,7 +56,7 @@ def cleanupImage(img):
     upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
     mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
     blur_yellow = cv.GaussianBlur(mask_yellow, (kSz, kSz), 0)
-    # displayImage("mask_yellow", mask_yellow)
+    # displayImage("mask_yellow", blur_yellow)
 
     # get the grayscale channel from HLS color space
     grayImg = newColorSpace(img, cNum=1)
@@ -60,14 +64,18 @@ def cleanupImage(img):
     # threshold to only have white lines
     lowerBound = int(grayImg.max() - 30)
     threshWhite = cv.inRange(grayImg, lowerBound, 255)
+    # kill the part of the image that has detected the bumper
+    cv.rectangle(threshWhite, (165, 210), (245, 230), color=0, thickness=-1)
+
     # displayImage("gray thresh", threshWhite)
     smoothed2 = cv.GaussianBlur(threshWhite, (kSz, kSz), 0)
 
-    # mask the 2 images together
+    # mask the 2 yellow images together
     combined = cv.bitwise_or(smoothed, blur_yellow)
 
     # displayImage("combined", combined)
     return combined, smoothed2
+    # returns yellow, white
 
 
 def houghLines(img):
@@ -485,8 +493,8 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
 def main():
     # imgDir = os.path.abspath("../../testimages/lowres")
-    # imgDir = os.path.abspath("../../testvideo/frames")
-    imgDir = os.path.abspath("../../testimages/chessboard")
+    imgDir = os.path.abspath("../../testvideo/frames")
+    # imgDir = os.path.abspath("../../testimages/chessboard")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
@@ -494,8 +502,8 @@ def main():
     invh = getHomographyMatrix("color-lowres", inverse=True)
 
     for i in imgs:
-        # if not "frame9" in i:
-        #     continue
+        if not "frame150" in i:
+            continue
         print(os.path.basename(i))
         result = parseImage(i, hmg, invh, debug=True)
         if result is not None:

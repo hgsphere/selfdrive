@@ -23,6 +23,7 @@ class RouteManager(object):
         self.stopDetectQ = None
         self.emergencyStopQ = None
         self.ipsQ = None
+        self.name = None
 
         self.States = {
             "Init": 0,
@@ -31,7 +32,8 @@ class RouteManager(object):
             "Lane_Follow": 3,
             "Force_Forward": 4,
             "Force_Right_Turn": 5,
-            "Force_Left_Turn": 6
+            "Force_Left_Turn": 6,
+            "Crit_wp_stop": 7
         }
         self.state = self.States["Init"] # The IPS code route planning doesn't return to the lanefollowing
         # self.FORCED_DRIVE_DONE = False
@@ -57,6 +59,8 @@ class RouteManager(object):
 
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
+        self.dist_change = 0
+        self.last_dist = 0
 
 #    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, lat, lon):
@@ -70,13 +74,13 @@ class RouteManager(object):
         while True:
             self.angle = self.laneDetectQ.get()
 
-            print(self.angle, end='\t')
+            #print(self.angle, end='\t')
             self.CROSSWALK = self.stopDetectQ.get()
 
-            print(self.CROSSWALK, end='\t')
+            #print(self.CROSSWALK, end='\t')
             self.EMERGENCY = self.emergencyStopQ.get()
 
-            print(self.EMERGENCY, end='\t')
+            #print(self.EMERGENCY, end='\t')
 
             # try:
             #     coords = self.ipsQ.get_nowait()
@@ -94,12 +98,12 @@ class RouteManager(object):
     def RouteActions(self):
         # actions to take in each state
         if self.state == self.States["Init"]:
-            self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-            print(self.current_path,name)
+            self.current_path, self.name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            print(self.current_path,self.name)
         elif self.state == self.States["Stop"]:
             # self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
             pass
-     
+
         elif self.state == self.States["Crosswalk_Stop"]:
             pass
         elif self.state == self.States["Lane_Follow"]:
@@ -134,10 +138,15 @@ class RouteManager(object):
         #print(self.COORDINATES)
         # find the path to the next critical waypoint
         # use that data to determine the turn
+        print("We've found a stop line: {}".format(self.name))
+        if self.name is "stopLine0" or self.name is "stopLine3":
+            return self.States["Force_Left_Turn"]
+        elif self.name is "stopLine1" or self.name is "stopLine2":
+            return self.States["Force_Right_Turn"]
         nextTurnPath = self.ips.findPath(*self.COORDINATES,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
         if len(nextTurnPath) >= 3:
-            nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:3])]
+            nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:5])]
             nextStart = nextTurnPath[3]
         else:
             nextTurn = self.States["Force_Forward"]
@@ -145,18 +154,18 @@ class RouteManager(object):
 
 
         # now from where the turn ends, find the next stop line
-        self.current_path, name = self.ips.findNextStopLine(*nextStart)
+        self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
 
         # return the next turn
         return nextTurn
 
         # print(self.current_path)
         # which direction to turn?
-        #return ips.computeTurnDirection(self.current_path[0:3])
+        #return ips.computeTurnDirection(self.current_path[0:5])
         #print(self.current_path[0][0:3])
-        #print(ips.computeTurnDirection(self.current_path[0][0:3]))
+        #print(ips.computeTurnDirection(self.current_path[0][0:5]))
         # if (self.current_path is not None) and (len(self.current_path) > 2):
-        #     return self.States[ips.computeTurnDirection(self.current_path[0:3])]
+        #     return self.States[ips.computeTurnDirection(self.current_path[0:5])]
         # else: # We might be stuck at a stop here
         #     pass
             #return self.States["Force_Forward"]
@@ -177,18 +186,22 @@ class RouteManager(object):
 
     def inRangeOfCritWaypoint(self):
         """Are we in range of a critical waypoint? These are defined in route.json"""
-        w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        # w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        w, h = self.COORDINATES
+        targetPt = decodePtName(self.route_critical_waypoints[self.current_path_idx])
+        dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
         #print(self.current_path)
         #print(self.current_path[self.current_path_idx])
         #print('####################################### ' + str(self.current_path_idx))
         #print(self.COORDINATES)
         # if the node is the close one, and within a distance
-        if (w, h) == self.route_critical_waypoints[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
-            if dist < self.ips.avg_dst:
-                # increment the critical waypoint index
-                self.current_path_idx += 1
-                return  True
+        # if (w, h) == self.route_critical_waypoints[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
+        if dist < self.ips.avg_dst:
+            # increment the critical waypoint index
+            print('#######################################\n\t\t CRITICAL WAYPOINT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n#######################################')
+            self.current_path_idx += 1
+            return  True
         return False
 
     def inRangeOfStopLine(self):
@@ -198,16 +211,25 @@ class RouteManager(object):
         targetPt = self.current_path[-1]
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-
+        
+        # check if the car is not following the current path
+        self.dist_change = self.last_dist - dist
+        #wrong_direction_thres = 1
+        if (self.dist_change < 0): #and (self.dist_change > wrong_direction_thres):
+            # Recalculate the current path
+            self.current_path, self.name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])                                                            
+            print(self.current_path,self.name) 
+        self.last_dist = dist
         #img = self.ips.displayPath(self.current_path[0])
         #cv.imshow("features", img)
         #time.sleep(5)
         # debug
-        threshDist = self.ips.avg_dst * 1.5
-        route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
-        print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
+        threshDist = self.ips.avg_dst * 1.6
+        #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
+        #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
+        print("{} < {} ?".format( dist, threshDist))
         print("comparing {} to {}".format((w, h), targetPt))
-        print('####################################### ' + str(len(route)))
+        #print('####################################### ' + str(len(route)))
 
         # if the node is the close one, and within a distance
         
@@ -248,7 +270,7 @@ class RouteManager(object):
         # get closest waypoint
         w, h, dist = self.ips.findClosestGraphPoint(self.COORDINATES[0],self.COORDINATES[1],getDist=True)
         
-        # get the sides of our GPS error trangle
+        # get the sides of our GPS error triangle
         dist_plan = np.sqrt((n3[0]-n0[0])**2+(n3[1]-n0[1])**2)
         dist_close = dist
         dist_future = np.sqrt((n3[0]-self.COORDINATES[0])**2+(n3[1]-self.COORDINATES[1])**2)
@@ -284,7 +306,7 @@ class RouteManager(object):
             return 0
 
     def RouteTick(self):
-        print(self.state)
+        #print(self.state)
         self.RouteActions()
         # route state transition
         if self.state == self.States["Init"]:
@@ -305,6 +327,14 @@ class RouteManager(object):
             #    self.state = self.States["Stop"]
             self.state = self.States["Stop"]
 
+        elif self.state == self.States["Crit_wp_stop"]:
+            if self.stopCounter == 0:
+                self.asyncDrive.stop()
+            self.stopCounter += 1
+            if self.stopCounter == 60:
+                self.stopCounter = 0
+                self.state = self.States["Lane_Follow"]
+
         elif self.state == self.States["Lane_Follow"]:
             # print('Lane_Follow')
             if self.EMERGENCY:
@@ -321,7 +351,7 @@ class RouteManager(object):
 ######    So there is nonetype error when checking the current_waypoint state, I gonna comment this out to tune LaneFollowing
             elif self.inRangeOfCritWaypoint():
                 self.action_Taken = False
-                self.state = self.States["Stop"]
+                self.state = self.States["Crit_wp_stop"]
 
             elif self.inRangeOfStopLine():
                 self.action_Taken = False

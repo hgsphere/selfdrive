@@ -53,34 +53,49 @@ def displayRouteImg(name, img, wait=True, targetHeight=740):
 
 def computeTurnDirection(nodes):
     """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
-    if len(nodes) != 3:
+    if len(nodes) != 5:
         print("Takes exactly 3 nodes")
         raise IndexError
-    n0, n1, n2 = nodes
-    slopeTolerance = 5.0
+    n0 = nodes[0]
+    n1 = nodes[1]
+    n2 = nodes[4]
+    # n0, n1, n2 = nodes
+    angleTolerance = 5.0
+
+    side_a = sqrt(pow(n0[0] - n1[0], 2) + pow(n0[1] - n1[1], 2))
+    side_b = sqrt(pow(n0[0] - n2[0], 2) + pow(n0[1] - n2[1], 2))
+    side_c = sqrt(pow(n1[0] - n2[0], 2) + pow(n1[1] - n2[1], 2))
+
+    # print(dist_plan,dist_close,dist_future)
+    # calculate the angle between the car and perdicted GPS path
+    GPS_angle = (180 / np.pi) * np.arccos(
+        (side_a ** 2 + side_b ** 2 - side_c ** 2) / (2 * abs(side_a * side_b)))
 
     # slopes
-    if (n1[0] - n0[0]) == 0:
-        s0 = 1000
-    else:
-        s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
+    # if (n1[0] - n0[0]) == 0:
+    #     s0 = 1000
+    # else:
+    #     s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
+    #
+    # if (n2[0] - n1[0]) == 0:
+    #     s1 = 1000
+    # else:
+    #     s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
 
-    if (n2[0] - n1[0]) == 0:
-        s1 = 1000
-    else:
-        s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
-
-    sdiff = s1 - s0
+    # sdiff = abs(s1) - abs(s0)
+    print("We are going to turn, based on slope difference {}".format(GPS_angle))
+    print(nodes)
 
     # make decision
-    if abs(sdiff) < slopeTolerance:
+    if abs(GPS_angle) < angleTolerance:
         return "Force_Forward"
-    elif (s0 > 0) and (s1 < s0):
+    elif GPS_angle > 0:
         return "Force_Right_Turn"
-    elif (s0 <= 0) and abs(s1 < abs(s0)):
+    elif GPS_angle < 0:
         return "Force_Left_Turn"
     else:
-        return "Force_Forward"
+        print("ERROR!!!!!")
+        return "Lane_Follow"
 
 
 # globals for coordinate values
@@ -103,16 +118,20 @@ def getCurrentCoor(color="Yellow"):
     r = rget(url=URL)
 
     # extract data
-    coorString = r.text
-    coordinates = coorString.split()
-    if coordinates is not None:
-        lat = float(coordinates[0])
-        lon = float(coordinates[1])
-        Glat = lat
-        Glon = lon
-    else:
-        lat = Glat
-        lon = Glon
+    try:
+        coorString = r.text
+        coordinates = coorString.split()
+        if coordinates is not None:
+            lat = float(coordinates[0])
+            lon = float(coordinates[1])
+            Glat = lat
+            Glon = lon
+        else:
+            lat = Glat
+            lon = Glon
+    except Exception as e:
+        lat = -1
+        lon = -1
 
     return lat, lon
 
@@ -283,8 +302,8 @@ def testPathFinding(ips):
     """
 
     cv.namedWindow("path")
-    p0 = 300, 520
-    p1 = 700, 1450
+    p0 = 549, 613
+    p1 = 770, 1064
     RED = (0, 0, 255)
 
     path = ips.findPath(*p0, *p1)
@@ -302,9 +321,9 @@ def testPathFinding(ips):
 def main():
     ips = IPS()
     # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
-    # displayRouteImg("path", ips.displayDirectedGraph())
+    displayRouteImg("path", ips.displayDirectedGraph())
 
-    # testPathFinding(ips)
+    testPathFinding(ips)
     # testFeatureFinding(ips)
 
     cv.destroyAllWindows()

@@ -22,14 +22,14 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .05 #.10   # 0.3 # min speed
+SPEED_SLOW = .2 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
-STEER_LEFT = -25
-TEST_DELAY = 4
-FULL_TURN_DELAY = 2.4
-HALF_TURN_DELAY = 1.2
-INIT_DELAY = .4
+STEER_LEFT = -18
+TEST_DELAY = 3
+FULL_TURN_DELAY = 2.8
+HALF_TURN_DELAY = 2.5
+INIT_DELAY = .5
 
 class control:
     """The control class manages the connection to the jetson and driving commands/feedback
@@ -118,7 +118,7 @@ class control:
         print('INFO: Turning ({})'.format(angle))
         # Start turn
         self.drive(SPEED_GO)
-        self.drive(SPEED_SLOW)
+        self.drive(SPEED_SLOW*2) # TODO I just doubled the turn speed
 
         print('INFO: Delay ({})'.format(init_delay)) 
         time.sleep(init_delay)  # give it a second to pid to start
@@ -141,7 +141,7 @@ class control:
     """Force the Car to Turn Right
     """
     def force_right_turn(self):
-        self.force_drive(FULL_TURN_DELAY, STEER_RIGHT, INIT_DELAY)
+        self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY)
 
     """Force the Car to Turn Left
     """
