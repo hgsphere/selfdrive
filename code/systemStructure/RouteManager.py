@@ -6,11 +6,12 @@ import collections
 import numpy as np
 import time
 import cv2 as cv
+from math import sqrt
 
 sys.path.append(os.path.abspath("../car"))
 sys.path.append(os.path.abspath("../ips"))
 from asyncDrive import asyncDrive
-from digraph import getPtName
+from digraph import getPtName, decodePtName
 import ips
 import globals
 
@@ -50,6 +51,10 @@ class RouteManager(object):
         with open(os.path.join(globals.code_base_dir, "ips/route.json")) as jf:
             self.route_critical_waypoints = json.load(jf)
 
+        self.stopCounter = 0
+        self.lat = None
+        self.lon = None
+
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
 
@@ -81,8 +86,7 @@ class RouteManager(object):
 
             # I don't thinl we can grab these variables this way
             #self.COORDINATES = ips.latitude, ips.longitude
-            self.COORDINATES = self.lat.value, self.lon.value
-   
+            self.COORDINATES = abs(self.lat.value), abs(self.lon.value)
 
             self.RouteTick()
             #print(self.state)
@@ -90,10 +94,11 @@ class RouteManager(object):
     def RouteActions(self):
         # actions to take in each state
         if self.state == self.States["Init"]:
-            self.current_path,name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
             print(self.current_path,name)
         elif self.state == self.States["Stop"]:
-            self.current_path,name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            # self.current_path, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            pass
      
         elif self.state == self.States["Crosswalk_Stop"]:
             pass
@@ -127,20 +132,37 @@ class RouteManager(object):
     def routePlan(self):
         # based on the current location, find the next stop line
         #print(self.COORDINATES)
-        self.current_path,name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-        print(self.current_path)
+        # find the path to the next critical waypoint
+        # use that data to determine the turn
+        nextTurnPath = self.ips.findPath(*self.COORDINATES,
+                                         *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
+        if len(nextTurnPath) >= 3:
+            nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:3])]
+            nextStart = nextTurnPath[3]
+        else:
+            nextTurn = self.States["Force_Forward"]
+            nextStart = self.COORDINATES
+
+
+        # now from where the turn ends, find the next stop line
+        self.current_path, name = self.ips.findNextStopLine(*nextStart)
+
+        # return the next turn
+        return nextTurn
+
+        # print(self.current_path)
         # which direction to turn?
         #return ips.computeTurnDirection(self.current_path[0:3])
         #print(self.current_path[0][0:3])
         #print(ips.computeTurnDirection(self.current_path[0][0:3]))
-        if (self.current_path is not None) and (len(self.current_path) > 2):
-            return self.States[ips.computeTurnDirection(self.current_path[0:3])]
-        else: # We might be stuck at a stop here
-            pass
+        # if (self.current_path is not None) and (len(self.current_path) > 2):
+        #     return self.States[ips.computeTurnDirection(self.current_path[0:3])]
+        # else: # We might be stuck at a stop here
+        #     pass
             #return self.States["Force_Forward"]
 
         # if there path couldn't be found got to Init
-        return self.States["Init"]
+        # return self.States["Init"]
 
         # returns the next state
         #Route = ['Lane_Follow', 'Force_Forward', 'Lane_Follow', 'Force_Right_Turn', 'Lane_Follow', \
@@ -162,8 +184,8 @@ class RouteManager(object):
         #print('####################################### ' + str(self.current_path_idx))
         #print(self.COORDINATES)
         # if the node is the close one, and within a distance
-        if getPtName(w, h) == self.current_path[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
-            if dist < 20.0:
+        if (w, h) == self.route_critical_waypoints[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
+            if dist < self.ips.avg_dst:
                 # increment the critical waypoint index
                 self.current_path_idx += 1
                 return  True
@@ -171,26 +193,32 @@ class RouteManager(object):
 
     def inRangeOfStopLine(self):
         """Are we in range of the next stop line? This is the last element in the current path list."""
-        w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        # w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
+        w, h = self.COORDINATES
+        targetPt = self.current_path[-1]
+        dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-
 
         #img = self.ips.displayPath(self.current_path[0])
         #cv.imshow("features", img)
         #time.sleep(5)
+        # debug
+        threshDist = self.ips.avg_dst * 1.5
+        route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
+        print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
+        print("comparing {} to {}".format((w, h), targetPt))
+        print('####################################### ' + str(len(route)))
+
         # if the node is the close one, and within a distance
         
-        #if getPtName(w, h) == self.current_path[-1]:
-        #    if dist < 20.0:
-        #        return True
-
-        # This might work
-        route,stopname = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1]) 
-        print(route,stopname)
-        print('####################################### ' + str(len(route)))
-        print(self.COORDINATES)
-        if len(route) == 1:
+        # if (w, h) == targetPt:
+        if dist < threshDist:
+            print("!!!!!!!!!!!!!!!!!!!!!!! STOP !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return True
+
+        # print(self.COORDINATES)
+        # if len(route) == 1:
+        #     return True
         return False
 
     def emergencyStop(self):
@@ -265,8 +293,12 @@ class RouteManager(object):
 
         elif self.state == self.States["Stop"]:
             print('Stop State')
-            self.asyncDrive.stop()
-            self.state = self.routePlan()
+            if self.stopCounter == 0:
+                self.asyncDrive.stop()
+            self.stopCounter += 1
+            if self.stopCounter == 60:
+                self.stopCounter = 0
+                self.state = self.routePlan()
 
         elif self.state == self.States["Crosswalk_Stop"]:
             # if self.crosswalk_y > 400:
@@ -341,3 +373,8 @@ class RouteManager(object):
 
             else:
                 self.state = self.States["Force_Left_Turn"]
+
+
+
+if __name__ == '__main__':
+    print("Not to be run as main!")

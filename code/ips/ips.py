@@ -57,7 +57,7 @@ def computeTurnDirection(nodes):
         print("Takes exactly 3 nodes")
         raise IndexError
     n0, n1, n2 = nodes
-    slopeTolerance = 10.0
+    slopeTolerance = 5.0
 
     # slopes
     if (n1[0] - n0[0]) == 0:
@@ -89,6 +89,7 @@ latitude = Value("d", 0.0)
 
 Glat = 0
 Glon = 0
+
 def getCurrentCoor(color="Yellow"):
     global Glat
     global Glon
@@ -116,7 +117,7 @@ def getCurrentCoor(color="Yellow"):
     return lat, lon
 
 #def pollCoordinates(ips_routeManagerQ):
-def pollCoordinates(lat,lon):
+def pollCoordinates(lat, lon):
     #global latitude, longitude
 
     while True:
@@ -141,8 +142,19 @@ class IPS(object):
         # also keep the image around
         image_path = os.path.join(globals.code_base_dir,"ips/Global.jpg")
         self.image = cv.imread(image_path)
-        # TODO: determine the average distance between each node
-        
+        # determine the average distance between each node
+        distances = []
+        for node, edges in self.graphDict.items():
+            xn, yn = decodePtName(node)
+            x, y = xn, yn
+            # we'll just do the first possible edge
+            for nm, attr in edges.items():
+                x, y = decodePtName(nm)
+                break
+            dist = sqrt(pow(xn - x, 2) + pow(yn - y, 2))
+            if dist > 0:
+                distances.append(dist)
+        self.avg_dst = int(np.mean(distances))
 
     def findNextStopLine(self, x, y):
         """Instead of finding straight line distance,
@@ -293,7 +305,7 @@ def main():
     # displayRouteImg("path", ips.displayDirectedGraph())
 
     # testPathFinding(ips)
-    testFeatureFinding(ips)
+    # testFeatureFinding(ips)
 
     cv.destroyAllWindows()
 

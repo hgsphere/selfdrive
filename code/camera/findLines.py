@@ -453,7 +453,7 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
             # print(origTarget)
             if SAVE_VIDEO:
                 #t = ((target[0][0][0], target[0][0][1]), (target[1][0][0], target[1][0][1]))
-                writer_rgb.write(warped)
+                writer_rgb.write(showHeading(origTarget,img))
 
         if not printOnce:
             printOnce = 1

@@ -22,11 +22,11 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .01 #.10   # 0.3 # min speed
+SPEED_SLOW = .05 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -25
-TEST_DELAY = 2
+TEST_DELAY = 4
 FULL_TURN_DELAY = 2.4
 HALF_TURN_DELAY = 1.2
 INIT_DELAY = .4
