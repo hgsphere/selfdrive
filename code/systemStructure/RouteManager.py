@@ -7,6 +7,7 @@ import numpy as np
 import time
 import cv2 as cv
 from math import sqrt
+import features
 
 sys.path.append(os.path.abspath("../car"))
 sys.path.append(os.path.abspath("../ips"))
@@ -139,16 +140,27 @@ class RouteManager(object):
         # find the path to the next critical waypoint
         # use that data to determine the turn
         print("We've found a stop line: {}".format(self.name))
+        # look-up table for the easy corner stops
         if self.name is "stopLine0" or self.name is "stopLine3":
             return self.States["Force_Left_Turn"]
         elif self.name is "stopLine1" or self.name is "stopLine2":
             return self.States["Force_Right_Turn"]
-        nextTurnPath = self.ips.findPath(*self.COORDINATES,
+
+        # path from the previous stop line to the next critical waypoint
+        # ensure that the first point passed to findPath is the stopLine coordinates
+        stopLineCoords = features.getStopLineCoordinates(self.name)
+        if stopLineCoords is None:
+            stopLineCoords = self.COORDINATES
+        else:
+            stopLineCoords = decodePtName(stopLineCoords)
+
+        nextTurnPath = self.ips.findPath(*stopLineCoords,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
         if len(nextTurnPath) >= 3:
             nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:5])]
             nextStart = nextTurnPath[3]
         else:
+            print("Error! next path is too short!!!!!!!!!!!!")
             nextTurn = self.States["Force_Forward"]
             nextStart = self.COORDINATES
 
@@ -188,6 +200,11 @@ class RouteManager(object):
         """Are we in range of a critical waypoint? These are defined in route.json"""
         # w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
         w, h = self.COORDINATES
+
+        # If all waypoints have been reached restart
+        if self.current_path_idx == len(self.route_critical_waypoints):
+            self.current_path_idx = 0
+
         targetPt = decodePtName(self.route_critical_waypoints[self.current_path_idx])
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
@@ -260,7 +277,7 @@ class RouteManager(object):
 
     def calc_GPS_angle(self):
         """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
-        nodes,name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+        nodes, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
         if len(nodes) < 4:
             #print('Less than four waypoints go straight')
             return 0

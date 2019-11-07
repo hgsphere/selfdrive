@@ -146,3 +146,12 @@ graphStopLines = {
     "590,828"   : "stopLine6",      # actual (590, 824)
     "546,620"   : "stopLine7",      # actual (544, 622)
 }
+
+
+def getStopLineCoordinates(name):
+    """Gets the coordinates of a stop line based on its name."""
+    for p, n in graphStopLines.items():
+        if n == name:
+            return p
+    
+    return None

@@ -51,6 +51,50 @@ def displayRouteImg(name, img, wait=True, targetHeight=740):
         return
 
 
+def findAbsoluteHeading(pt0, pt1):
+    img_height = 1600
+    
+    # is the car facing up or down?
+    deltaY = pt1[1] - pt0[1]
+    # positive means facing down
+
+    # heading
+    xInt0 = pt0[0] 
+    xInt1 = pt1[0]
+
+    if (pt1[0] - pt0[0]) == 0:
+        # straight up and down
+        heading = 0
+    else:
+        m = (pt1[1] - pt0[1]) / (pt1[0] - pt0[0])
+        if m == 0:
+            # slope is 0, flat horizontal line
+            heading = -90
+        else:
+            # y-intercept
+            b = pt1[1] - m*pt1[0]
+            # x-intercepts
+            xInt0 = (-b) / m
+            xInt1 = (img_height - b) / m
+            deltaX = abs(xInt0 - xInt1)
+
+            # heading in degrees
+            heading = (180/np.pi) * np.arctan(deltaX / img_height)
+    
+    if xInt0 < xInt1:
+        heading = -heading
+
+    if deltaY > 0:
+        heading += 180
+
+    # normalize
+    if heading < 0:
+        # still
+        heading += 360
+
+    return heading
+
+
 def computeTurnDirection(nodes):
     """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
     if len(nodes) != 5:
@@ -60,7 +104,7 @@ def computeTurnDirection(nodes):
     n1 = nodes[1]
     n2 = nodes[4]
     # n0, n1, n2 = nodes
-    angleTolerance = 5.0
+    angleTolerance = 3.0
 
     side_a = sqrt(pow(n0[0] - n1[0], 2) + pow(n0[1] - n1[1], 2))
     side_b = sqrt(pow(n0[0] - n2[0], 2) + pow(n0[1] - n2[1], 2))
@@ -71,31 +115,25 @@ def computeTurnDirection(nodes):
     GPS_angle = (180 / np.pi) * np.arccos(
         (side_a ** 2 + side_b ** 2 - side_c ** 2) / (2 * abs(side_a * side_b)))
 
-    # slopes
-    # if (n1[0] - n0[0]) == 0:
-    #     s0 = 1000
-    # else:
-    #     s0 = (n1[1] - n0[1]) / (n1[0] - n0[0])
-    #
-    # if (n2[0] - n1[0]) == 0:
-    #     s1 = 1000
-    # else:
-    #     s1 = (n2[1] - n1[1]) / (n2[0] - n1[0])
+    # if this angle is less than tolerance, then we're going straight
+    if GPS_angle < angleTolerance:
+        return "Force_Forward"
 
-    # sdiff = abs(s1) - abs(s0)
-    print("We are going to turn, based on slope difference {}".format(GPS_angle))
+    # otherwise, we need to do some other calculations to find which way we're turning
+    heading0 = findAbsoluteHeading(n0, n1)
+    heading1 = findAbsoluteHeading(n0, n2)
+    print(heading0, heading1)
+
+    # the difference between the headings
+    hDiff = heading1 - heading0
+
+    print("We are going to turn, based on slope difference {}".format(hDiff))
     print(nodes)
 
-    # make decision
-    if abs(GPS_angle) < angleTolerance:
-        return "Force_Forward"
-    elif GPS_angle > 0:
+    if hDiff > 0:
         return "Force_Right_Turn"
-    elif GPS_angle < 0:
-        return "Force_Left_Turn"
     else:
-        print("ERROR!!!!!")
-        return "Lane_Follow"
+        return "Force_Left_Turn"
 
 
 # globals for coordinate values
@@ -318,15 +356,24 @@ def testPathFinding(ips):
     return
 
 
+def testTurnDecision():
+    """Testing if it decides the right turns."""
+    pts0 = [(10, 30), (20, 20), (0, 0), (0, 0), (30, 20)]
+    pts1 = [(30, 20), (20, 20), (0, 0), (0, 0), (10, 30)]
+    computeTurnDirection(pts0)
+    computeTurnDirection(pts1)
+
+
 def main():
-    ips = IPS()
+    # ips = IPS()
     # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
-    displayRouteImg("path", ips.displayDirectedGraph())
+    # displayRouteImg("path", ips.displayDirectedGraph())
 
-    testPathFinding(ips)
+    # testPathFinding(ips)
     # testFeatureFinding(ips)
+    testTurnDecision()
 
-    cv.destroyAllWindows()
+    # cv.destroyAllWindows()
 
 
 if __name__ == '__main__':

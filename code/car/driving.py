@@ -22,13 +22,13 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .2 #.10   # 0.3 # min speed
+SPEED_SLOW = .25 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -18
 TEST_DELAY = 3
-FULL_TURN_DELAY = 2.8
-HALF_TURN_DELAY = 2.5
+FULL_TURN_DELAY = 2.5
+HALF_TURN_DELAY = 2
 INIT_DELAY = .5
 
 class control:
@@ -141,12 +141,12 @@ class control:
     """Force the Car to Turn Right
     """
     def force_right_turn(self):
-        self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY)
+        self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY*.7)
 
     """Force the Car to Turn Left
     """
     def force_left_turn(self):
-        self.force_drive(FULL_TURN_DELAY, STEER_LEFT, INIT_DELAY)
+        self.force_drive(FULL_TURN_DELAY, STEER_LEFT, INIT_DELAY*1)
 
     def force_road_topleft_center(self):
         self.force_drive(TEST_DELAY, STEER_STRAIGHT)
