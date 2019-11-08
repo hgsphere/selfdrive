@@ -37,6 +37,7 @@ class RouteManager(object):
             "Crit_wp_stop": 7
         }
         self.state = self.States["Init"] # The IPS code route planning doesn't return to the lanefollowing
+        self.preEmergencyStopState = None
         # self.FORCED_DRIVE_DONE = False
         self.COUNTER = 0
         self.angle = 0
@@ -79,7 +80,7 @@ class RouteManager(object):
             self.CROSSWALK = self.stopDetectQ.get()
 
             #print(self.CROSSWALK, end='\t')
-            self.EMERGENCY = self.emergencyStopQ.get()
+            self.EMERGENCY = self.emergencyStopQ.get(timeout=1000)
 
             #print(self.EMERGENCY, end='\t')
 
@@ -332,6 +333,15 @@ class RouteManager(object):
 
         elif self.state == self.States["Stop"]:
             print('Stop State')
+            if self.preEmergencyStopState is not None:
+                if not self.emergencyStop():
+                    self.state = self.preEmergencyStopState
+                    self.preEmergencyStopState = None
+                    # self.asyncDrive.start_LaneFollowing()
+                else:
+                    self.asyncDrive.stop()
+                    print("Waiting for object to be removed")
+                    return
             if self.stopCounter == 0:
                 self.asyncDrive.stop()
             self.stopCounter += 1
@@ -354,8 +364,9 @@ class RouteManager(object):
 
         elif self.state == self.States["Lane_Follow"]:
             # print('Lane_Follow')
-            if self.EMERGENCY:
+            if self.emergencyStop():
                 self.action_Taken = False
+                self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
             elif self.crosswalk():
                 self.action_Taken = False
@@ -385,6 +396,7 @@ class RouteManager(object):
 
             if self.emergencyStop():
                 self.action_Taken = False
+                self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
             elif self.asyncDrive.forceDriveDone:
@@ -398,6 +410,7 @@ class RouteManager(object):
         elif self.state == self.States["Force_Right_Turn"]:
             if self.emergencyStop():
                 self.action_Taken = False
+                self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
             elif self.asyncDrive.forceDriveDone:
@@ -411,6 +424,7 @@ class RouteManager(object):
         elif self.state == self.States["Force_Left_Turn"]:
             if self.emergencyStop():
                 self.action_Taken = False
+                self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
             elif self.asyncDrive.forceDriveDone:

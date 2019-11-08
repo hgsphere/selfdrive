@@ -1,12 +1,13 @@
 import os
 import sys
 import cv2 as cv
+import numpy as np
 sys.path.append(os.path.abspath("../camera"))
 
 
 class EmergencyStopDetector(object):
     def __init__(self):
-        pass
+        self.threshold = None
 
     def detectStop(self, frame):
         """Detects if we should stop the car
@@ -34,11 +35,17 @@ class EmergencyStopDetector(object):
         y0 = 150
         y1 = 380
 
-        roi = img[y0:y1, x0:x1]
+        roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
         return roi
 
     def checkForCloseObject(self, depthFrame):
-        return depthFrame.max() > 200
+        print(depthFrame.shape)
+        count = len((np.where(depthFrame < 500))[0])
+        print(count)
+        print("num values above threshold: {}".format(count))
+        # print("min value = {}".format(depthFrame.min()))
+        # return depthFrame.max() < self.threshold
+        return count > 42500
 
     def parseFrame(self, depthFrame):
         """Returns True if something is ahead of it too close, False otherwise"""
@@ -58,7 +65,7 @@ def testMain():
     # imgs = [os.path.join(imgDir, imgName)]
 
     # imgDir = os.path.abspath("../../testimages/frames/depth")
-    imgDir = os.path.abspath("../camera/tools/depthFrames")
+    imgDir = os.path.abspath("../camera/tools/depthFrames_new")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 

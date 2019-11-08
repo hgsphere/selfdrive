@@ -41,6 +41,12 @@ class Pollers(object):
         clipping_distance_in_meters = 0.3
         self.clipping_distance = clipping_distance_in_meters / depth_scale
 
+    def getClippingDistance(self):
+        if self.profile is not None:
+            return self.clipping_distance
+        else:
+            return None
+
     def processDepthFrame(self, depthData, width, height):
         depthFloat = np.zeros(depthData.shape, dtype=np.float32)
 

@@ -131,6 +131,8 @@ class imageprocessor:
 
     def runImageProcessing(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emStopDetect_routeManagerQ):
         self.poller = Pollers()
+        self.emStopD.threshold = self.poller.getClippingDistance()
+        print(" -- Set clipping distance to {} --".format(self.poller.getClippingDistance()))
         # print("starting delay for image processing")
         # for i in range(0,5):
         #     color, depth = self.poller.pollFrame()
@@ -145,11 +147,11 @@ class imageprocessor:
             # cv.imwrite("testFrame{}.jpeg".format(count), color)
 
             angle = self.getCorrectionAngle(color)
-            # emStop = self.emStopD.detectStop(depth)
+            emStop = self.emStopD.detectStop(depth)
             stopLines = self.getCrosswalk(color)
             laneDetect_routeManagerQ.put(angle)
             stopDetect_routeManagerQ.put(False) #stopLines)
-            emStopDetect_routeManagerQ.put(False)
+            emStopDetect_routeManagerQ.put(emStop)
             count += 1
 
 
