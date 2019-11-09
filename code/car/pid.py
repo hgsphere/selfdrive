@@ -12,6 +12,11 @@ class PID():
         self.prev_value = 0
         self.total_error = 0
 
+    def clear(self):
+        self.prev_error = 0
+        self.prev_value = 0
+        self.total_error = 0
+
     def thres(self,value,limit):
         limit = abs(limit)
         if value >= limit:

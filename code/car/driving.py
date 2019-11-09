@@ -22,13 +22,13 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .6
-SPEED_SLOW = .25 #.10   # 0.3 # min speed
+SPEED_SLOW = .05#.25 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -18
-TEST_DELAY = 3
-FULL_TURN_DELAY = 2.5
-HALF_TURN_DELAY = 2
+TEST_DELAY = 2.5#3
+FULL_TURN_DELAY = 2.5#2.5
+HALF_TURN_DELAY = 2#2
 INIT_DELAY = .5
 
 class control:
@@ -127,10 +127,10 @@ class control:
         time.sleep(duration)
 
         # Stop
-        self.force_stop()
-        print('INFO: Force Right Turn: Finished ')
-        print('INFO: Delay ({})'.format(2))
-        time.sleep(2)
+        #self.force_stop()
+        #print('INFO: Force Right Turn: Finished ')
+        #print('INFO: Delay ({})'.format(2))
+        #time.sleep(2)
 
     """Force the Car to Move Forward
          duration -- how long to move forward (default 3)

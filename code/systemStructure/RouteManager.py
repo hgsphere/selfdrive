@@ -61,7 +61,7 @@ class RouteManager(object):
 
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
-        self.dist_change = 0
+        self.last_dist_change = 0
         self.last_dist = 0
 
 #    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
@@ -140,12 +140,12 @@ class RouteManager(object):
         #print(self.COORDINATES)
         # find the path to the next critical waypoint
         # use that data to determine the turn
+        self.last_dist = 0
+        self.last_dist_change = 0
+        print(self.current_path)
         print("We've found a stop line: {}".format(self.name))
         # look-up table for the easy corner stops
-        if self.name is "stopLine0" or self.name is "stopLine3":
-            return self.States["Force_Left_Turn"]
-        elif self.name is "stopLine1" or self.name is "stopLine2":
-            return self.States["Force_Right_Turn"]
+
 
         # path from the previous stop line to the next critical waypoint
         # ensure that the first point passed to findPath is the stopLine coordinates
@@ -157,9 +157,15 @@ class RouteManager(object):
 
         nextTurnPath = self.ips.findPath(*stopLineCoords,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
-        if len(nextTurnPath) >= 3:
+        if self.name is "stopLine0" or self.name is "stopLine3":
+            nextTurn = self.States["Force_Left_Turn"]
+            nextStart = nextTurnPath[5]
+        elif self.name is "stopLine1" or self.name is "stopLine2":
+            nextTurn = self.States["Force_Right_Turn"]
+            nextStart = nextTurnPath[5]
+        elif len(nextTurnPath) >= 3:
             nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:5])]
-            nextStart = nextTurnPath[3]
+            nextStart = nextTurnPath[5]
         else:
             print("Error! next path is too short!!!!!!!!!!!!")
             nextTurn = self.States["Force_Forward"]
@@ -231,13 +237,38 @@ class RouteManager(object):
         #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
         
         # check if the car is not following the current path
-        self.dist_change = self.last_dist - dist
+        dist_change = self.last_dist - dist
         #wrong_direction_thres = 1
-        if (self.dist_change < 0): #and (self.dist_change > wrong_direction_thres):
+        if (dist_change < 0) and (dist_change < self.last_dist_change):
             # Recalculate the current path
-            self.current_path, self.name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])                                                            
-            print(self.current_path,self.name) 
+            path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            #print('###################################')
+            print('\t\tDisaster Recovery')
+            print('Current stop: {}'.format(self.name))
+            print('Recover stop: {}'.format(name2))
+            #print(self.current_path)
+            #print(path2)
+            #print('###################################')
+            if (self.name is "stopLine1") and (name2 is "stopLine4"):
+                return False
+            #if self.name is "stopLine4" and name2 is "stopLine5":
+            #    return False
+            #if self.name is "stopLine7" and name2 is "stopLine0":
+            #    return False
+            if self.name is "stopLine5" and name2 is "stopLine3":
+                return False
+            #if self.name is "stopLine6" and name2 is "stopLine2":
+            #    return False
+            #if self.name is "stopLine5" and name2 is "stopLine3":
+            #    return False
+            #if self.name is "stopLine6" and name2 is "stopLine2":
+            #    return False
+            #if self.name is "stopLine7" and name2 is "stopLine0":
+            #    return False
+            self.current_path = path2
+            self.name = name2
         self.last_dist = dist
+        self.last_dist_change = dist_change
         #img = self.ips.displayPath(self.current_path[0])
         #cv.imshow("features", img)
         #time.sleep(5)
@@ -391,7 +422,7 @@ class RouteManager(object):
         elif self.state == self.States["Force_Forward"]:
             if self.current_path_idx == len(self.current_path):
                 # spin here forever
-                self.state = self.States["Stop"]
+                self.state = self.States["Lane_Follow"]
                 self.action_Taken = False
 
             if self.emergencyStop():
