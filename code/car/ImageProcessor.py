@@ -150,7 +150,7 @@ class imageprocessor:
             emStop = self.emStopD.detectStop(depth)
             stopLines = self.getCrosswalk(color)
             laneDetect_routeManagerQ.put(angle)
-            stopDetect_routeManagerQ.put(False) #stopLines)
+            stopDetect_routeManagerQ.put(stopLines) #stopLines)
             emStopDetect_routeManagerQ.put(emStop)
             count += 1
 

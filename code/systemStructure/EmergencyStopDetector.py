@@ -3,6 +3,7 @@ import sys
 import cv2 as cv
 import numpy as np
 sys.path.append(os.path.abspath("../camera"))
+from findLines import displayImage
 
 
 class EmergencyStopDetector(object):
@@ -28,14 +29,16 @@ class EmergencyStopDetector(object):
     def maskImage(self, img):
         # width = img.shape[1]
         # height = img.shape[0]
+        print(img.shape)
 
         x0 = 150
-        x1 = 520
+        x1 = 340
 
-        y0 = 150
-        y1 = 380
+        y0 = 90
+        y1 = 210
 
         roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
+        # roi = img[y0:y1, x0:x1]
         return roi
 
     def checkForCloseObject(self, depthFrame):
@@ -45,7 +48,7 @@ class EmergencyStopDetector(object):
         print("num values above threshold: {}".format(count))
         # print("min value = {}".format(depthFrame.min()))
         # return depthFrame.max() < self.threshold
-        return count > 42500
+        return count > 6000
 
     def parseFrame(self, depthFrame):
         """Returns True if something is ahead of it too close, False otherwise"""
@@ -65,7 +68,7 @@ def testMain():
     # imgs = [os.path.join(imgDir, imgName)]
 
     # imgDir = os.path.abspath("../../testimages/frames/depth")
-    imgDir = os.path.abspath("../camera/tools/depthFrames_new")
+    imgDir = os.path.abspath("../camera/tools/depthFrames")
     imgList = os.listdir(imgDir)
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 

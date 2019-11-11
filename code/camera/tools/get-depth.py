@@ -11,13 +11,14 @@ import os
 class testPipe():
 	def __init__(self):
 		self.config = rs.config()
-		self.shape = (640, 480)
+		shape_rgb = (424, 240)
+		self.shape = (480, 270)
 		self.frame_rate = 30
 		self.config.enable_stream(rs.stream.depth,
 								  self.shape[0], self.shape[1],
 								  rs.format.z16, self.frame_rate)
 		self.config.enable_stream(rs.stream.color,
-								  self.shape[0], self.shape[1],
+								  shape_rgb[0], shape_rgb[1],
 								  rs.format.bgr8, self.frame_rate)
 		self.pipeline = rs.pipeline()
 
@@ -34,8 +35,8 @@ class testPipe():
 		clipping_distance_in_meters = 0.3
 		self.clipping_distance = clipping_distance_in_meters / self.depth_scale
 
-	def __del__(self):
-		self.pipeline.stop()
+	# def __del__(self):
+	# 	self.pipeline.stop()
 
 	def getFrame(self):
 		frames = self.pipeline.wait_for_frames()
@@ -72,8 +73,8 @@ def main():
 		frame = tp.getFrame()
 		if i < 5:
 			continue
-		cv_imwrite(os.path.join(outPath, "frame{}.jpeg".format(i)), frame)
 		input("waiting...")
+		cv_imwrite(os.path.join(outPath, "frame{}.jpeg".format(i)), frame)
 		# print(depthData)
 
 
