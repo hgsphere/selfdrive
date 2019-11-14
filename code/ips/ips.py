@@ -258,6 +258,26 @@ class IPS(object):
         else:
             return wMax, hMax
 
+    def findClosestPathPoint(self, path, x, y, getDist=False):
+        """Given a point on the image, what is the closest point in the path, where path is a subset of the graph."""
+        wMax = self.image.shape[1]
+        hMax = self.image.shape[0]
+        # distance formula
+        distMax = sqrt(pow(wMax - x, 2) + pow(hMax - y, 2))
+
+        for node in path:
+            xn, yn = node
+            dist = sqrt(pow(xn - x, 2) + pow(yn - y, 2))
+            if dist < distMax:
+                wMax = xn
+                hMax = yn
+                distMax = dist
+
+        if getDist:
+            return wMax, hMax, distMax
+        else:
+            return wMax, hMax
+
     def findPath(self, x0, y0, x1, y1):
         """Find the shortest point between two points on the graph.
         Returns a list of x,y tuples.  May or may not include the original points.
