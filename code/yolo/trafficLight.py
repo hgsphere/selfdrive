@@ -1,5 +1,8 @@
+#!/usr/bin/python3
+
 import mxnet as mx
 from gluoncv import model_zoo, utils
+from time import perf_counter
 from PIL import Image
 import numpy as np
 import cv2
@@ -46,7 +49,7 @@ class trafficLightDetector(object):
 
     # this function is from yolo3.utils.letterbox_image
     def letterbox_image(self, image, size=416):
-        '''resize image with unchanged aspect ratio using padding'''
+        """resize image with unchanged aspect ratio using padding"""
         iw, ih = image.size
 
         scale = min(size/iw, size/ih)
@@ -94,14 +97,37 @@ class trafficLightDetector(object):
 
         if boxSlice is not None:
             boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
-            cv2.imshow("boxSlice", boxSlice)
+            # cv2.imshow("boxSlice", boxSlice)
             cv2.waitKey(0)
 
         gc.collect()
         return boxSlice
 
     def detectColor(self, box):
-        return "red"
+        height = box.shape[0]
+
+        # looking for the brightest light
+        gray = cv2.cvtColor(box, cv2.COLOR_BGR2GRAY)
+        radius = 7
+        # blur to make it more robust
+        blur = cv2.GaussianBlur(gray, (radius, radius), 0)
+        # find the coordinates of the brightest pixel
+        (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(blur)
+
+        # display
+        # image = box.copy()
+        # cv2.circle(image, maxLoc, radius, (255, 0, 0), 2)
+        # cv2.imshow("spot", image)
+        # cv2.waitKey(0)
+
+        # look at the bottom quarter of the image
+        # this can be adjusted as needed
+        threshold = height * (3.0/4.0)
+        if maxLoc[1] > threshold:
+            return "green"
+        else:
+            return "red"
+
 
     def detectTrafficLight(self, frame):
         # can read frames from paths
@@ -113,26 +139,48 @@ class trafficLightDetector(object):
 
         if boxSlice is not None:
             # look for a color
-            self.detectColor(boxSlice)
+            return self.detectColor(boxSlice)
+        else:
+            return "red"
 
 
-# TODO: this is not yet implemented
-def runYoloDetector(inputQueue):
+def runYoloDetector(yolo_pipe, readyFlag, greenFlag):
+    pipe_output, pipe_input = yolo_pipe
+    pipe_input.close()      # only reading
+
     tld = trafficLightDetector()
+    tStart = perf_counter()
 
     while True:
-        nextFrame = inputQueue.get()
+        # set the ready flag high
+        readyFlag.value = 1
+        # get the next frame
+        nextFrame = pipe_output.recv()
         color = tld.detectTrafficLight(nextFrame)
+        tEnd = perf_counter()
+        print(" - yolo - tDiff = {}".format(tEnd - tStart))
+
+        # set the output flag
+        if color == 'green':
+            greenFlag.value = 1
+        else:
+            greenFlag.value = 0
+        tStart = perf_counter()
 
 
 def mainTest():
     # test if the color detector works
     tld = trafficLightDetector()
 
-    testImage = cv2.imread("../../testimages/trafficLights/red.png")
-    color = tld.detectColor(testImage)
+    imgDir = os.path.abspath("../../testimages/trafficLights/slices")
+    imgList = os.listdir(imgDir)
+    imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
-    print(color)
+    for i in imgs:
+        testImage = cv2.imread(i)
+        color = tld.detectColor(testImage)
+
+        print(color)
 
 
 if __name__ == '__main__':

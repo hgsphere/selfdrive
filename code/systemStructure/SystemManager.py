@@ -2,17 +2,19 @@
 
 import sys
 import os
+import multiprocessing as mp
+import threading
+from queue import Queue
 
 sys.path.append(os.path.abspath("../ips"))
 sys.path.append(os.path.abspath("../systemStructure"))
 sys.path.append(os.path.abspath("../car"))
+sys.path.append(os.path.abspath("../yolo"))
 
 from ImageProcessor import imageprocessor
 from RouteManager import RouteManager
 from ips import *
-import multiprocessing as mp
-import threading
-from queue import Queue
+from trafficLight import runYoloDetector
 
 
 class SystemManager(object):
@@ -27,6 +29,10 @@ class SystemManager(object):
         self.laneDetect_routeManagerQ = mp.Queue(maxsize=60)
         self.emergencyStop_routeManagerQ = mp.Queue(maxsize=60)
         self.stopDetect_routeManagerQ = mp.Queue(maxsize=60)
+        # For transfering data to/from Yolo detector
+        self.yolo_pipe = mp.Pipe()                  # transfer the next frame
+        self.yolo_ready_flag = mp.Value('i', 0)     # detector is ready for another frame
+        self.yolo_green_flag = mp.Value('i', 0)     # green light detected
         # create the objects
         self.imgProc = imageprocessor()
         self.routeManager = RouteManager()
@@ -47,15 +53,17 @@ class SystemManager(object):
             ctx = mp.get_context('fork')
             # IPS poller process setup and start
             #ipsPollProcess = ctx.Process(target=pollCoordinates, args=(self.IPS_routeManagerQ,), name="IPSPoller")
-            lat = Value('d', 0.0)
-            lon = Value('d', 0.0)
+            lat = mp.Value('d', 0.0)
+            lon = mp.Value('d', 0.0)
             ipsPollProcess = ctx.Process(target=pollCoordinates, args=(lat,lon),name="IPSPoller")
             ipsPollProcess.start()
             # Lane detector process setup and start
             imageProcessorProcess = ctx.Process(target=self.imgProc.runImageProcessing,
                                                 args=(self.laneDetect_routeManagerQ,
                                                       self.stopDetect_routeManagerQ,
-                                                      self.emergencyStop_routeManagerQ),
+                                                      self.emergencyStop_routeManagerQ,
+                                                      self.yolo_pipe,
+                                                      self.yolo_ready_flag),
                                                 name="ImageProcessor")
             imageProcessorProcess.start()
 
@@ -68,12 +76,21 @@ class SystemManager(object):
                                                     lat,lon),
                                               name="RouteManager")
             routeManagerProcess.start()
+
+            # yolo detector process
+            yoloDetectorProcess = ctx.Process(target=runYoloDetector,
+                                              args=(self.yolo_pipe,
+                                                    self.yolo_ready_flag,
+                                                    self.yolo_green_flag),
+                                              name="YoloDetector")
+            yoloDetectorProcess.start()
     
             print("All processes started")
             # wait for everything to complete
             imageProcessorProcess.join()
             ipsPollProcess.join()
             routeManagerProcess.join()
+            yoloDetectorProcess.join()
 
         except Exception as e:
             print("Error in system manager")

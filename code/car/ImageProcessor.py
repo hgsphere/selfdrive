@@ -129,7 +129,11 @@ class imageprocessor:
 
         return CROSSWALK
 
-    def runImageProcessing(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emStopDetect_routeManagerQ):
+    def runImageProcessing(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emStopDetect_routeManagerQ,
+                           yolo_pipe, yolo_ready_flag):
+        pipe_output, pipe_input = yolo_pipe
+        pipe_output.close()     # don't need to read from it
+
         self.poller = Pollers()
         self.emStopD.threshold = self.poller.getClippingDistance()
         print(" -- Set clipping distance to {} --".format(self.poller.getClippingDistance()))
@@ -153,6 +157,10 @@ class imageprocessor:
             stopDetect_routeManagerQ.put(stopLines) #stopLines)
             emStopDetect_routeManagerQ.put(emStop)
             count += 1
+
+            if yolo_ready_flag.value >= 1:
+                pipe_input.send(color)
+                yolo_ready_flag.value = 0
 
 
 if __name__ == "__main__":
