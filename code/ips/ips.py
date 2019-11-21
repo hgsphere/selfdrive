@@ -193,7 +193,7 @@ class IPS(object):
         # we're using a directed graph
         self.graph = nx_DiGraph()
         # load in the data from the graph file
-        with open(os.path.join(globals.code_base_dir,"ips/graph.json"), 'r') as jf:
+        with open(os.path.join(globals.code_base_dir,"ips" + os.path.sep + "graph.json"), 'r') as jf:
             self.graphDict = json.load(jf)
             self.graph = nx_from_dict_of_dicts(self.graphDict, create_using=self.graph)
         # also keep the image around
@@ -360,7 +360,7 @@ def testPathFinding(ips):
     """
 
     cv.namedWindow("path")
-    p0 = 549, 613
+    p0 = 100, 100
     p1 = 770, 1064
     RED = (0, 0, 255)
 
@@ -385,13 +385,13 @@ def testTurnDecision():
 
 
 def main():
-    # ips = IPS()
+    ips = IPS()
     # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
     # displayRouteImg("path", ips.displayDirectedGraph())
 
-    # testPathFinding(ips)
+    testPathFinding(ips)
     # testFeatureFinding(ips)
-    testTurnDecision()
+    # testTurnDecision()
 
     # cv.destroyAllWindows()
 
