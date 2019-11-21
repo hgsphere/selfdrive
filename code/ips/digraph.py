@@ -50,7 +50,7 @@ def editGraph():
     img = cv.imread(path)
 
     # read in graph file
-    with open("graph.json", 'r') as jf:
+    with open("graph_dense.json", 'r') as jf:
         graphData = json.load(jf)
         G = nx.from_dict_of_dicts(graphData, create_using=G)
 
@@ -77,7 +77,7 @@ def editGraph():
             break
 
     cv.destroyAllWindows()
-    with open("graph.json", 'w') as jf:
+    with open("graph_dense.json", 'w') as jf:
         data = nx.to_dict_of_dicts(G)
         # G = nx.from_dict_of_dicts(data)
         json.dump(data, jf, indent=2)
@@ -119,8 +119,8 @@ def defineRoute():
 
 
 def main():
-    # editGraph()
-    defineRoute()
+    editGraph()
+    # defineRoute()
 
 
 if __name__ == '__main__':
