@@ -63,9 +63,17 @@ def editGraph():
             pt1 = decodePtName(nm)
             drawLine(img, (x, y), pt1, color=RED)
 
+    cv.imwrite("graph_overlay.jpeg", img)
+
+    image_top = img[0:img.shape[0]//2]
+    image_bottom = img[img.shape[0]//2:img.shape[0] - 1]
     cv.namedWindow("image")
+    # cv.namedWindow("image_top")
+    # cv.namedWindow("image_bottom")
     # cv.setMouseCallback("image", getClick)
     cv.imshow("image", img)
+    # cv.imshow("image_top", image_top)
+    # cv.imshow("image_bottom", image_bottom)
     cv.waitKey(0)
     return
 
