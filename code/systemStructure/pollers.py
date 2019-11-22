@@ -22,7 +22,7 @@ class Pollers(object):
         rs.log_to_console(rs.log_severity.info)
         self.pipeline = rs.pipeline()
         config = rs.config()
-        shape = (640, 480)
+        shape = (480, 270)
         self.shape_rgb = (424, 240)
 
         # shape_depth = (480,270)

@@ -52,7 +52,6 @@ class SystemManager(object):
         try:
             ctx = mp.get_context('fork')
             # IPS poller process setup and start
-            #ipsPollProcess = ctx.Process(target=pollCoordinates, args=(self.IPS_routeManagerQ,), name="IPSPoller")
             lat = mp.Value('d', 0.0)
             lon = mp.Value('d', 0.0)
             ipsPollProcess = ctx.Process(target=pollCoordinates, args=(lat,lon),name="IPSPoller")

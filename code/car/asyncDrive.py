@@ -37,7 +37,13 @@ class asyncDrive:
         #self.pid = PID(.9,.06,.5) great clip I 30
         self.pid = PID(.9,.0015,.9) # .9 .0015 .9 worked previously
 
+    def clear(self):
+        zz = np.zeros((1,20))
+        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        self.pid.clear()
+
     def start_LaneFollowing(self,):
+        self.clear()
         self.ctl.drive(self.ctl.SPEED_GO)
         self.ctl.drive(self.ctl.SPEED_SLOW)
 
@@ -98,7 +104,7 @@ class asyncDrive:
         data = [x if (x >= -30) else -30 for x in list(data)]
         #data = self.angles
         #kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
-        kf = KalmanFilter(initial_state_mean=np.mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=np.mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)#0.61,n_dim_obs=1)
         means, covs = kf.filter(list(data))
         #estimate = means[14][0]
         self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])

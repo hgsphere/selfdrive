@@ -29,7 +29,7 @@ class EmergencyStopDetector(object):
     def maskImage(self, img):
         # width = img.shape[1]
         # height = img.shape[0]
-        print(img.shape)
+        #print(img.shape)
 
         x0 = 150
         x1 = 340
@@ -42,9 +42,9 @@ class EmergencyStopDetector(object):
         return roi
 
     def checkForCloseObject(self, depthFrame):
-        print(depthFrame.shape)
+        #print(depthFrame.shape)
         count = len((np.where(depthFrame < 500))[0])
-        print(count)
+        #print(count)
         print("num values above threshold: {}".format(count))
         # print("min value = {}".format(depthFrame.min()))
         # return depthFrame.max() < self.threshold

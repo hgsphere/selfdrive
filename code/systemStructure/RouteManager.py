@@ -115,9 +115,9 @@ class RouteManager(object):
                 self.asyncDrive.start_LaneFollowing()
                 print('Starting Lane Following')
                 self.action_Taken = True
-            #G_angle = self.calc_GPS_angle()
-            #print(G_angle) ha I almost had this working but I broke it
-            self.asyncDrive.LaneFollow(self.angle)# + 0*G_angle)
+            G_angle = self.calc_GPS_angle()
+            print(G_angle) #I almost had this working but I broke it
+            self.asyncDrive.LaneFollow(self.angle*0 + -10*G_angle)
         elif self.state == self.States["Force_Forward"]:
             print(self.action_Taken)
             if self.action_Taken == False:
@@ -248,9 +248,9 @@ class RouteManager(object):
             path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
             if self.name is "stopLine5" and name2 is "stopLine3":
                 return False
-            self.current_path = path2
-            self.name = name2
-            print(self.current_path,self.name)
+            #self.current_path = path2
+            #self.name = name2
+            #print(self.current_path,self.name)
         self.last_dist = dist
         self.last_dist_change = dist_change
         #img = self.ips.displayPath(self.current_path[0])
@@ -290,53 +290,74 @@ class RouteManager(object):
     def checkForceDrive(self):
         return self.asyncDrive.forceDriveDone
 
+    def quick_index_lookup(self):
+        w, h = self.ips.findClosestPathPoint(self.current_path,*self.COORDINATES, getDist=False)
+        tup = (w,h)
+        #print('Closest point')
+        #print(tup)
+        #print('Current path')
+        #print(self.current_path)
+        #indx = np.where(self.current_path == tup)
+        try:
+            indx = self.current_path.index(tup)
+        except Exception as e:
+            print(tup)
+            print(self.current_path)
+            indx = 0
+        #print(indx)
+        if indx is None:
+            print('Could Not find Car')
+            return 0
+        #print(indx)
+        return indx
 
-    def calc_GPS_angle(self):
-        """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
-        nodes, name = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-        if len(nodes) < 4:
-            #print('Less than four waypoints go straight')
+    def calc_GPS_angle(self):                                                                                                                                            
+        """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""                                                                        
+        
+        if (len(self.current_path) < 4):
             return 0
-        #print(nodes[0:4])
-        n0,n1,n2,n3 = nodes[0:4]
-       
-        # get closest waypoint
-        w, h, dist = self.ips.findClosestGraphPoint(self.COORDINATES[0],self.COORDINATES[1],getDist=True)
-        
-        # get the sides of our GPS error triangle
-        dist_plan = np.sqrt((n3[0]-n0[0])**2+(n3[1]-n0[1])**2)
-        dist_close = dist
-        dist_future = np.sqrt((n3[0]-self.COORDINATES[0])**2+(n3[1]-self.COORDINATES[1])**2)
-        
-        #print(dist_plan,dist_close,dist_future)
-        # calculate the angle between the car and perdicted GPS path
-        GPS_angle = (180/np.pi)*np.arccos((dist_future**2 + dist_plan**2 - dist_close**2)/(2*abs(dist_plan*dist_future)))
 
-        # slopes      
-        if (n1[0] - n0[0]) == 0:
-            s0 = 0
-        else:
-            s0 = (n2[1] - n0[1]) / (n1[0] - n0[0])
-        
-        if (n2[0] - n1[0]) == 0:                                                       
-            s1 = 0
-        else:
-            s1 = (n3[1] - n0[1]) / (n3[0] - n0[0])
-                                                                   
-        sdiff = s0 - s1
-        
-        slopeTolerance = .01
-        #print(sdiff)
-        #print(s0,s1)                                               
-        # make decision
-        if abs(sdiff) < slopeTolerance:
+        indx = self.quick_index_lookup()
+        nodes = self.current_path[indx:indx+4]                                                                                       
+        print(nodes)
+        if (len(nodes) < 4):
             return 0
-        elif sdiff > 0:
-            return GPS_angle
-        elif sdiff < 0:
-            return -GPS_angle
-        else:
-            return 0
+
+        n0,n1,n2,n3 = nodes[0:4]                                                                                                                                         
+        # n0 is closest                                                                                                                                                  
+                                                             
+
+
+        # Compute heading of car to 2 waypoints ahead (n2)
+        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n2)                                                                    
+
+        print('Car to 2 waypoints ahead of closest: {}'.format(car_heading))
+        # Compute heading of car to next-next waypoint (n2)                                                                                                              
+        # assume car is following the current path's direction                                                                                                           
+        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n3)                                                                                                       
+        print('Car to 3 waypoints ahead of closest: {}'.format(car_heading2))                                                                                                                                               
+        # compare car's heading against the waypoints heading                                                                                                            
+        path_heading = ips.findAbsoluteHeading(n0,n2)                                                                                                                    
+        print('Closest Waypoint to two waypoints ahead: {}'.format(path_heading))
+
+        # calulate the curvature of the road                                                                                                                             
+        future_heading = ips.findAbsoluteHeading(n1,n3)                                                                                                                  
+        print('Next waypoint to 3 waypoints ahead: {}'.format(future_heading) )                                                                       
+
+        # this is the current car heading error                                                                                                                             
+        delta_heading = car_heading2 - car_heading                                                                                                                       
+        print('Close to 2 ahead - car to 2 ahead: {}'.format(delta_heading))                                                                                                                                             
+                                                                                                                                                                         
+        # calc curvature                                                                                                                                                 
+        curvature = future_heading - path_heading
+        print('Next point to 3 ahead: {}'.format(curvature))
+
+        heading_error = delta_heading - curvature
+        print('Heading Error: {}'.format(heading_error))                                                                                                                        
+        # add in a little future nudging                                                                                                                                 
+        GPS_correction_angle = 1.2*heading_error                                                                                                            
+        print(GPS_correction_angle)                                                                                                                                      
+        return GPS_correction_angle
 
     def RouteTick(self):
         #print(self.state)
