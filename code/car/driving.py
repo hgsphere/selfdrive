@@ -12,8 +12,8 @@ HISTORY_FILE = 'command_history.txt'
 
 # List of Default calibration values
 DEFAULT_STRAIGHT = 1560
-DEFUALT_START = 1685
-DEFUALT_SPEED = 0.8#0.6
+DEFUALT_START = 1660#1685
+DEFUALT_SPEED = 0.6 #0.8
 DEFAULT_PID = 0 
 DEFAULT_KP = 0.01
 DEFAULT_KD = 0.01
@@ -127,10 +127,10 @@ class control:
         time.sleep(duration)
 
         # Stop
-        self.force_stop()
-        print('INFO: Force Right Turn: Finished ')
-        print('INFO: Delay ({})'.format(2))
-        time.sleep(2)
+        #self.force_stop()
+        #print('INFO: Force Right Turn: Finished ')
+        #print('INFO: Delay ({})'.format(2))
+        #time.sleep(2)
 
     """Force the Car to Move Forward
          duration -- how long to move forward (default 3)

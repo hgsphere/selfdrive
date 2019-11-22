@@ -26,10 +26,10 @@ class EmergencyStopDetector(object):
             print("Error in Emergency Stop Detector!")
             print(e)
 
-    def maskImage(self, img):
+    def maskImage(self, img): #424(x) 240(y)
         # width = img.shape[1]
         # height = img.shape[0]
-        print(img.shape)
+        #print(img.shape)
 
         x0 = 150
         x1 = 340
@@ -38,13 +38,17 @@ class EmergencyStopDetector(object):
         y1 = 210
 
         roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
+        rowNumbers = np.linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
+        print(rowNumbers)
+        roiRowSample = roi[rowNumbers]
+
         # roi = img[y0:y1, x0:x1]
-        return roi
+        return roiRowSample
 
     def checkForCloseObject(self, depthFrame):
-        print(depthFrame.shape)
+        #print(depthFrame.shape)
         count = len((np.where(depthFrame < 500))[0])
-        print(count)
+        #print(count)
         print("num values above threshold: {}".format(count))
         # print("min value = {}".format(depthFrame.min()))
         # return depthFrame.max() < self.threshold
