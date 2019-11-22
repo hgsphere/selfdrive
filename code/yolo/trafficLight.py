@@ -77,28 +77,50 @@ class trafficLightDetector(object):
         scores = scores.asnumpy().tolist()
         bounding_boxs = bounding_boxs.asnumpy()
 
+        interestingClasses = ["traffic light"]
+
         maxConfidence = 0.0
         boxSlice = None
+        maxBoxSize = 0
 
         # iterate through detected objects
         for i in range(len(class_IDs[0])):
-            current_score = (scores[0][i])[0]
-            if current_score > self.confidence:
-                current_class_id = self.net.classes[int((class_IDs[0][i])[0])]
+            # filter by class
+            current_class_id = self.net.classes[int((class_IDs[0][i])[0])]
+            if current_class_id not in interestingClasses:
+                continue
 
-                if current_score > maxConfidence and current_class_id == "traffic light":
+            # filter by confidence
+            current_score = (scores[0][i])[0]
+            if current_score < self.confidence:
+                continue
+
+            # unpack
+            current_bb = bounding_boxs[0][i]
+            x0, y0, x1, y1 = current_bb
+            curArea = (x1-x0) * (y1-y0)
+
+            # first filter by area
+            if curArea > maxBoxSize:
+                maxBoxSize = curArea
+
+                # get only the part of the image with the stoplight in it
+                pt0 = (int(x0), int(y0))
+                pt1 = (int(x1), int(y1))
+                boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
+            elif curArea == maxBoxSize:
+                if current_score > maxConfidence:
                     maxConfidence = current_score
-                    current_bb = bounding_boxs[0][i]
 
                     # get only the part of the image with the stoplight in it
-                    pt0 = (int(current_bb[0]), int(current_bb[1]))
-                    pt1 = (int(current_bb[2]), int(current_bb[3]))
+                    pt0 = (int(x0), int(y0))
+                    pt1 = (int(x1), int(y1))
                     boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
 
         if boxSlice is not None:
             boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
             # cv2.imshow("boxSlice", boxSlice)
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
 
         gc.collect()
         return boxSlice
