@@ -31,6 +31,7 @@ class RouteManager(object):
             "Stop": 1,
             "Crosswalk_Stop": 2,
             "Lane_Follow": 3,
+            "GPS_Follow": 8,
             "Force_Forward": 4,
             "Force_Right_Turn": 5,
             "Force_Left_Turn": 6,
@@ -110,7 +111,17 @@ class RouteManager(object):
 
         elif self.state == self.States["Crosswalk_Stop"]:
             pass
+
         elif self.state == self.States["Lane_Follow"]:
+            if self.action_Taken == False:
+                self.asyncDrive.start_LaneFollowing()
+                print('Starting GPS Following')
+                self.action_Taken = True
+            G_angle = self.calc_GPS_angle()
+            print(G_angle)
+            self.asyncDrive.LaneFollow(self.angle*1+ 0*G_angle)
+
+        elif self.state == self.States["GPS_Follow"]:
             if self.action_Taken == False:
                 self.asyncDrive.start_LaneFollowing()
                 print('Starting Lane Following')
@@ -118,6 +129,7 @@ class RouteManager(object):
             G_angle = self.calc_GPS_angle()
             print(G_angle) #I almost had this working but I broke it
             self.asyncDrive.LaneFollow(self.angle*0 + -10*G_angle)
+
         elif self.state == self.States["Force_Forward"]:
             print(self.action_Taken)
             if self.action_Taken == False:
@@ -180,7 +192,8 @@ class RouteManager(object):
         self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
 
         # return the next turn
-        return nextTurn
+       ## Always do GPS turns
+        return self.States["GPS_Follow"] #nextTurn
 
         # print(self.current_path)
         # which direction to turn?
@@ -276,6 +289,22 @@ class RouteManager(object):
         #     return True
         return False
 
+    def TerminateGPS(self):
+        """Are we in range of the next stop line? This is ~ 12th element in the current path list."""
+        w, h = self.COORDINATES
+        targetPt = self.current_path[12]
+        dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
+        
+        threshDist = self.ips.avg_dst * 1.6
+        
+        if dist < threshDist:
+            print("!!!!!!!!!!!!!!!!!!!!!!! Switching to LANEFOLLWING !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            return True
+
+        return False
+
+
+
     def emergencyStop(self):
         return self.EMERGENCY
 
@@ -311,46 +340,59 @@ class RouteManager(object):
         #print(indx)
         return indx
 
+
+    def heading_diff(self,heading1,heading2):
+        # heading1 - heading2 
+        #(fix 359 - 1 = 358 to 359 - 1 = -2)
+        #(fix 1 - 359 - -358 to 1 - 359 = 2)
+        if (heading1 > 270) and (heading2 < 90):
+            return (heading1 - 360) - heading2
+        
+        if (heading1 < 90) and (heading2 > 270):
+            return heading1 - (heading2 - 360)
+
+        return heading1 - heading2
+
     def calc_GPS_angle(self):                                                                                                                                            
         """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""                                                                        
         
-        if (len(self.current_path) < 4):
+        if (len(self.current_path) < 7):
             return 0
 
         indx = self.quick_index_lookup()
-        nodes = self.current_path[indx:indx+4]                                                                                       
+        nodes = self.current_path[indx:indx+7]                                                                                       
         print(nodes)
-        if (len(nodes) < 4):
+        if (len(nodes) < 7):
             return 0
 
-        n0,n1,n2,n3 = nodes[0:4]                                                                                                                                         
+        n0,n1,n2,n3,n4,n5,n6 = nodes[0:7]                                                                                                                                         
         # n0 is closest                                                                                                                                                  
                                                              
 
 
         # Compute heading of car to 2 waypoints ahead (n2)
-        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n2)                                                                    
+        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n4)     # was n2                                                    
 
-        print('Car to 2 waypoints ahead of closest: {}'.format(car_heading))
+        print('Car to 4 waypoints ahead of closest: {}'.format(car_heading))
         # Compute heading of car to next-next waypoint (n2)                                                                                                              
         # assume car is following the current path's direction                                                                                                           
-        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n3)                                                                                                       
-        print('Car to 3 waypoints ahead of closest: {}'.format(car_heading2))                                                                                                                                               
+        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n6) # was n3                                                                                                       
+        print('Car to 6 waypoints ahead of closest: {}'.format(car_heading2))                                                                                                                                               
         # compare car's heading against the waypoints heading                                                                                                            
-        path_heading = ips.findAbsoluteHeading(n0,n2)                                                                                                                    
+        path_heading = ips.findAbsoluteHeading(n0,n4) # was n2                                                                             
         print('Closest Waypoint to two waypoints ahead: {}'.format(path_heading))
 
         # calulate the curvature of the road                                                                                                                             
-        future_heading = ips.findAbsoluteHeading(n1,n3)                                                                                                                  
-        print('Next waypoint to 3 waypoints ahead: {}'.format(future_heading) )                                                                       
+        future_heading = ips.findAbsoluteHeading(n0,n6)   # was n3                                                                                
+        print('Closest waypoint to 3 waypoints ahead: {}'.format(future_heading) )                                                                       
 
         # this is the current car heading error                                                                                                                             
-        delta_heading = car_heading2 - car_heading                                                                                                                       
-        print('Close to 2 ahead - car to 2 ahead: {}'.format(delta_heading))                                                                                                                                             
+        delta_heading = self.heading_diff(car_heading2, car_heading)
+        print('car to 4 ahead - car to 6 ahead: {}'.format(delta_heading))                                                                                                                                             
                                                                                                                                                                          
         # calc curvature                                                                                                                                                 
-        curvature = future_heading - path_heading
-        print('Next point to 3 ahead: {}'.format(curvature))
+        curvature = self.heading_diff(future_heading,path_heading)
+        print('Closest point to 4 ahead - closest to 6 ahead: {}'.format(curvature))
 
         heading_error = delta_heading - curvature
         print('Heading Error: {}'.format(heading_error))                                                                                                                        
@@ -409,11 +451,6 @@ class RouteManager(object):
                 self.action_Taken = False
                 self.state = self.States["Stop"]
 
-            # things that additionally will be checked for stop:
-            #  in range of a critical waypoint
-            #  in range of the stop line
-###### NOT WORKING
-######    So there is nonetype error when checking the current_waypoint state, I gonna comment this out to tune LaneFollowing
             elif self.inRangeOfCritWaypoint():
                 self.action_Taken = False
                 self.state = self.States["Crit_wp_stop"]
@@ -424,6 +461,28 @@ class RouteManager(object):
 
             else:
                 self.state = self.States["Lane_Follow"]
+
+
+        elif self.state == self.States["GPS_Follow"]:
+            # print('Lane_Follow')
+            if self.emergencyStop():
+                self.action_Taken = False
+                self.preEmergencyStopState = self.state
+                self.state = self.States["Stop"]
+            elif self.crosswalk():      # and (self.las
+                self.action_Taken = False
+                self.state = self.States["Stop"]
+
+            elif self.inRangeOfCritWaypoint():
+                self.action_Taken = False
+                self.state = self.States["Crit_wp_stop"]
+
+            elif self.TerminateGPS():
+                self.action_Taken = False
+                self.state = self.States["Stop"]
+
+            else:
+                self.state = self.States["GPS_Follow"]
 
         elif self.state == self.States["Force_Forward"]:
             if self.current_path_idx == len(self.current_path):

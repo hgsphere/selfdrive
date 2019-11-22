@@ -1,0 +1,4 @@
+# there was a yolo or cuda error that ran a preformace test and broke our code
+
+# to disable this 
+export MXNET_CUDNN_AUTOTUNE_DEFAULT=0
