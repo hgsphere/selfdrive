@@ -127,8 +127,8 @@ def defineRoute():
 
 
 def main():
-    # editGraph()
-    defineRoute()
+    editGraph()
+    # defineRoute()
 
 
 if __name__ == '__main__':
