@@ -37,6 +37,9 @@ class SystemManager(object):
         self.imgProc = imageprocessor()
         self.routeManager = RouteManager()
 
+        # fix YOLO thing
+        os.putenv("MXNET_CUDNN_AUTOTUNE_DEFAULT", "0")
+
     def initializeSystem(self):
         print("Initializing System")
         print("Starting FramePoller")
@@ -49,12 +52,19 @@ class SystemManager(object):
     def main(self):
         if len(sys.argv) > 1 and sys.argv[1] is True:
             print("debugging enabled")
+
+        # set up stuff for good termination later
+        ipsPollProcess = None
+        imageProcessorProcess = None
+        routeManagerProcess = None
+        yoloDetectorProcess = None
+
         try:
             ctx = mp.get_context('fork')
             # IPS poller process setup and start
             lat = mp.Value('d', 0.0)
             lon = mp.Value('d', 0.0)
-            ipsPollProcess = ctx.Process(target=pollCoordinates, args=(lat,lon),name="IPSPoller")
+            ipsPollProcess = ctx.Process(target=pollCoordinates, args=(lat,lon), name="IPSPoller")
             ipsPollProcess.start()
             # Lane detector process setup and start
             imageProcessorProcess = ctx.Process(target=self.imgProc.runImageProcessing,
@@ -72,7 +82,8 @@ class SystemManager(object):
                                                     self.stopDetect_routeManagerQ,
                                                     self.emergencyStop_routeManagerQ,
                                                     #self.IPS_routeManagerQ),
-                                                    lat,lon),
+                                                    lat,lon,
+                                                    self.yolo_green_flag),
                                               name="RouteManager")
             routeManagerProcess.start()
 
@@ -91,6 +102,17 @@ class SystemManager(object):
             routeManagerProcess.join()
             yoloDetectorProcess.join()
 
+        except KeyboardInterrupt as ke:
+            print("Shutting down")
+            if imageProcessorProcess is not None:
+                imageProcessorProcess.terminate()
+            if ipsPollProcess is not None:
+                ipsPollProcess.terminate()
+            if routeManagerProcess is not None:
+                routeManagerProcess.terminate()
+            if yoloDetectorProcess is not None:
+                yoloDetectorProcess.terminate()
+            raise ke
         except Exception as e:
             print("Error in system manager")
             print(e)

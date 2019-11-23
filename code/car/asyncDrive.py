@@ -128,8 +128,8 @@ class asyncDrive:
 
         #if df < 20:
         #    df = 20
-        df = 18
-        avg = np.mean([means[i][0] for i in range(df-1,df+1)])
+        df = 17
+        avg = np.mean([means[i][0] for i in range(df-2,df+2)])
         # print("here")
         # print(avg)
         # print("here_after")

@@ -1,3 +1,7 @@
+utils/
+*.jpeg
+*.avi
+*.txt
 *__pycache__
 code/car/testdriving.py.old
 code/car/command_history.txt

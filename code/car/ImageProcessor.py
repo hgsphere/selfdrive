@@ -159,7 +159,11 @@ class imageprocessor:
             count += 1
 
             if yolo_ready_flag.value >= 1:
-                pipe_input.send(color)
+                height = color.shape[0]
+                width = color.shape[1]
+                cropped_for_pipe = color[0:height//2, int(width/3):width-1]
+                # print("Sending data through the pipe:\n\t\t{}".format(cropped_for_pipe.shape))
+                pipe_input.send(cropped_for_pipe)
                 yolo_ready_flag.value = 0
 
 

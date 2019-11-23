@@ -19,6 +19,25 @@ class trafficLightDetector(object):
         self.net.collect_params().reset_ctx(self.device)
         # detected bounding boxes
         self.confidence = 0.55
+        self.video_writer = None
+        self.TAKE_VIDEO = True
+        if self.TAKE_VIDEO:
+            self.init_video_writer()
+
+    def __del__(self):
+        if self.TAKE_VIDEO:
+            self.video_writer.release()
+
+    def init_video_writer(self):
+        # shape_rgb = (416, 235)
+        shape_rgb = (282, 282)
+        # self.y_offset = (416 - 235) // 2
+        frame_rate_rgb = 3
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+        outpath_rgb = os.path.join(os.getcwd(), "yoloVideo.avi")
+        # outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")
+        self.video_writer = cv2.VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,
+                                       (shape_rgb[0], shape_rgb[1]), True)
 
     """Transforms for YOLO series."""
     def transform_test(self, imgs, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -63,11 +82,14 @@ class trafficLightDetector(object):
 
     def runYolo(self, frame):
         # some conversions
+        height = frame.shape[0]
+        width = frame.shape[1]
         frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # from gluoncv import data
         yolo_image = Image.fromarray(frameRGB, 'RGB')
-        x, img = self.load_test(yolo_image, short=416)
+        newWidth = width if width < 416 else 416
+        x, img = self.load_test(yolo_image, short=newWidth)
 
         # parse stuff
         class_IDs, scores, bounding_boxs = self.net(x.copyto(self.device))
@@ -80,8 +102,9 @@ class trafficLightDetector(object):
         interestingClasses = ["traffic light"]
 
         maxConfidence = 0.0
-        boxSlice = None
         maxBoxSize = 0
+        boxSlice = None
+        pt0, pt1 = None, None
 
         # iterate through detected objects
         for i in range(len(class_IDs[0])):
@@ -119,11 +142,26 @@ class trafficLightDetector(object):
 
         if boxSlice is not None:
             boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
+            colorDetect = self.detectColor(boxSlice)
             # cv2.imshow("boxSlice", boxSlice)
             # cv2.waitKey(0)
+            if self.TAKE_VIDEO and pt0 is not None:
+                cv2.rectangle(img, pt0, pt1, (0, 255, 0), 2)
+                cv2.imwrite("yoloImage.jpeg", img)
+                if colorDetect:
+                    cv2.rectangle(img, (40, 300), (80, 340), (0, 255, 0), -1)
+                    # cv2.addText(img, "GREEN", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1)
+                self.video_writer.write(img)
+                # print("YOLO Frame information:")
+                # print(type(img))
+                # print(img.shape)
+        else:
+            colorDetect = "red"
+            if self.TAKE_VIDEO:
+                self.video_writer.write(img)
 
-        gc.collect()
-        return boxSlice
+        # gc.collect()
+        return colorDetect
 
     def detectColor(self, box):
         height = box.shape[0]
@@ -157,13 +195,13 @@ class trafficLightDetector(object):
             frame = cv2.imread(frame)
 
         # get the bounding box
-        boxSlice = self.runYolo(frame)
+        return self.runYolo(frame)
 
-        if boxSlice is not None:
-            # look for a color
-            return self.detectColor(boxSlice)
-        else:
-            return "red"
+        # if boxSlice is not None:
+        #     # look for a color
+        #     return self.detectColor(boxSlice)
+        # else:
+        #     return "red"
 
 
 def runYoloDetector(yolo_pipe, readyFlag, greenFlag):

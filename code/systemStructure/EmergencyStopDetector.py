@@ -39,7 +39,7 @@ class EmergencyStopDetector(object):
 
         roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
         rowNumbers = np.linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
-        print(rowNumbers)
+        # print(rowNumbers)
         roiRowSample = roi[rowNumbers]
 
         # roi = img[y0:y1, x0:x1]
