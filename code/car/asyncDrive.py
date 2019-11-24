@@ -35,7 +35,11 @@ class asyncDrive:
         #self.pid = PID(.9,.002,.45)
         #self.pid = PID(.4,.0075,.7) ok with 600 I clip
         #self.pid = PID(.9,.06,.5) great clip I 30
-        self.pid = PID(.9,.0015,.9) # .9 .0015 .9 worked previously
+        self.pid = PID(.9,.002,.9) # .9 .0015 .9 worked previously
+
+
+    def setPID(self,kp,ki,kd):
+        self.pid = PID(kp,ki,kd)
 
     def clear(self):
         zz = np.zeros((1,20))
@@ -43,7 +47,7 @@ class asyncDrive:
         self.pid.clear()
 
     def start_LaneFollowing(self,):
-        self.clear()
+        #self.clear() Don't clear there is too much lag from gps to lane follow
         self.ctl.drive(self.ctl.SPEED_GO)
         self.ctl.drive(self.ctl.SPEED_SLOW)
 

@@ -183,6 +183,9 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
     GREEN = (0, 255, 0)
 
     for p0, p1 in lanes:
+        # OverflowError: signed integer is greater than maximum ###################### TODO
+        # Im just gonna skip this for now
+        pass
         cv.line(imgColor, p0, p1, GREEN, 3)
 
     # displayImage("lanes", imgColor)

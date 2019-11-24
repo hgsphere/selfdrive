@@ -66,6 +66,9 @@ class RouteManager(object):
 
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
+        zz = np.zeros((1,10))
+        self.heading_hist = collections.deque(zz.tolist()[0],maxlen=10)
+        self.last_coords = (0,0)
         self.last_dist_change = 0
         self.last_dist = 0
 
@@ -119,6 +122,7 @@ class RouteManager(object):
         elif self.state == self.States["Lane_Follow"]:
             if self.action_Taken == False:
                 self.asyncDrive.start_LaneFollowing()
+                #self.asyncDrive.setPID(.9,.0015,.9)
                 print('Starting GPS Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
@@ -128,11 +132,12 @@ class RouteManager(object):
         elif self.state == self.States["GPS_Follow"]:
             if self.action_Taken == False:
                 self.asyncDrive.start_LaneFollowing()
+                #self.asyncDrive.setPID(.9,.015,.9)
                 print('Starting Lane Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
             print(G_angle) #I almost had this working but I broke it
-            self.asyncDrive.LaneFollow(self.angle*0 + 10*G_angle)
+            self.asyncDrive.LaneFollow(self.angle*0 + 4*G_angle)
 
         elif self.state == self.States["Force_Forward"]:
             print(self.action_Taken)
@@ -260,9 +265,10 @@ class RouteManager(object):
         #wrong_direction_thres = 1
         if (dist_change < 0) and (dist_change < self.last_dist_change):
             # Recalculate the current path
-            path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-            if self.name is "stopLine5" and name2 is "stopLine3":
-                return False
+            pass
+            #path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            #if self.name is "stopLine5" and name2 is "stopLine3":
+            #    return False
             #self.current_path = path2
             #self.name = name2
             #print(self.current_path,self.name)
@@ -272,7 +278,7 @@ class RouteManager(object):
         #cv.imshow("features", img)
         #time.sleep(5)
         # debug
-        threshDist = self.ips.avg_dst * 4.5
+        threshDist = self.ips.avg_dst * 5 #4.5
         #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
         #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
         print("{} < {} ?".format( dist, threshDist))
@@ -294,14 +300,14 @@ class RouteManager(object):
     def TerminateGPS(self):
         """Are we in range of the next stop line? This is ~ 12th element in the current path list."""
         w, h = self.COORDINATES
-        targetPt = self.current_path[12]
+        targetPt = self.current_path[9]
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         
         threshDist = self.ips.avg_dst * 3
         print("comparing {} to {}".format((w, h), targetPt))
         
         if dist < threshDist:
-            print("!!!!!!!!!!!!!!!!!!!!!!! Switching to LANEFOLLWING !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("\n\n!!!!!!!!!!!!!!!!!!!!!!! Switching to LANEFOLLWING !!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n")
             return True
 
         return False
@@ -346,7 +352,7 @@ class RouteManager(object):
         #(fix 359 - 1 = 358 to 359 - 1 = -2)
         #(fix 1 - 359 - -358 to 1 - 359 = 2)
         if (heading1 > 270) and (heading2 < 90):
-            return (heading1 - 360) - heading2
+            return (heading1 - 360) - heading2 
         
         if (heading1 < 90) and (heading2 > 270):
             return heading1 - (heading2 - 360)
@@ -356,35 +362,54 @@ class RouteManager(object):
     def calc_GPS_angle(self):                                                                                                                                            
         """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""                                                                        
         
-        if (len(self.current_path) < 7):
+        if (len(self.current_path) < 3):
             return 0
 
         indx = self.quick_index_lookup()
-        nodes = self.current_path[indx:indx+7]                                                                                       
+        nodes = self.current_path[indx:indx+3]                                                                                       
         # print(nodes)
-        if (len(nodes) < 7):
+        if (len(nodes) < 3):
             return 0
 
-        n0,n1,n2,n3,n4,n5,n6 = nodes[0:7]                                                                                                                                         
+        n0,n1,n2 = nodes[0:3]                                                                                                                                         
         # n0 is closest                                                                                                                                                  
-                                                             
+                                          
 
+        if self.last_coords == self.COORDINATES:
+            return 0
+                   
+        #### New method (heading change based)
+        # compute gps based heading of car
+        head = ips.findAbsoluteHeading(self.last_coords,self.COORDINATES)
+        lasthead = list(self.heading_hist)[9]
+        self.heading_hist.append(head)
+        #avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        avgHead = head
+        # find the heading the car should be at
+        nexthead = ips.findAbsoluteHeading(self.COORDINATES,n1)
+        dist =  sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
+        
+        heading_offset =  self.heading_diff(nexthead, avgHead)*dist/10
+
+        self.last_coords = self.COORDINATES
+        print(heading_offset)
+        return heading_offset
 
         # Compute heading of car to 2 waypoints ahead (n2)
-        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n4)     # was n2                                                    
+        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n3)     # was n2                                                    
 
         # Compute heading of car to next-next waypoint (n2)
         # assume car is following the current path's direction
-        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n6) # was n3
+        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n4) # was n3
         # compare car's heading against the waypoints heading
-        path_heading = ips.findAbsoluteHeading(n0,n4) # was n2
+        path_heading = ips.findAbsoluteHeading(n0,n3) # was n2
 
         # print('Car to 4 waypoints ahead of closest: {}'.format(car_heading))
         # print('Car to 6 waypoints ahead of closest: {}'.format(car_heading2))
         # print('Closest Waypoint to two waypoints ahead: {}'.format(path_heading))
 
         # calulate the curvature of the road                                                                                                                             
-        future_heading = ips.findAbsoluteHeading(n0,n6)   # was n3                                                                                
+        future_heading = ips.findAbsoluteHeading(n0,n4)   # was n3                                                                                
 
         # this is the current car heading error
         delta_heading = self.heading_diff(car_heading2, car_heading)
@@ -487,7 +512,7 @@ class RouteManager(object):
 
             elif self.TerminateGPS():
                 self.action_Taken = False
-                self.state = self.States["Stop"]
+                self.state = self.States["Lane_Follow"]
 
             else:
                 self.state = self.States["GPS_Follow"]
@@ -544,6 +569,11 @@ class RouteManager(object):
         elif self.state == self.States["Wait_for_green"]:
             if self.greenFlag.value:
                 self.state = self.States["GPS_Follow"]
+            # debugging YOLO detector                                                                                                                                    
+            print("\n\n==========================================================")                                                                                      
+            print("Yolo detected green: {}".format(self.greenFlag.value))                                                                                                
+            print("\n\n")                                                                                                                                                
+            # end YOLO section
 
 
 if __name__ == '__main__':

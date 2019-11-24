@@ -21,8 +21,8 @@ DEFAULT_KD = 0.01
 
 # List of Useful driving values
 SPEED_STOP = 0
-SPEED_GO = .6
-SPEED_SLOW = .22 #.10   # 0.3 # min speed
+SPEED_GO = .7
+SPEED_SLOW = .3 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -18
