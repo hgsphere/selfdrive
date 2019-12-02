@@ -22,13 +22,13 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .7
-SPEED_SLOW = .3 #.10   # 0.3 # min speed
+SPEED_SLOW = .18 #.10   # 0.3 # min speed
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -18
-TEST_DELAY = 2.2
-FULL_TURN_DELAY = 1.8
-HALF_TURN_DELAY = 1.3
+TEST_DELAY = 3
+FULL_TURN_DELAY = 1.6#1.7
+HALF_TURN_DELAY = 1.4#1.7
 INIT_DELAY = 1
 
 class control:
@@ -118,7 +118,7 @@ class control:
         print('INFO: Turning ({})'.format(angle))
         # Start turn
         self.drive(SPEED_GO*1.2)
-        self.drive(SPEED_SLOW*3) # TODO I just doubled the turn speed
+        self.drive(SPEED_SLOW*2) # TODO I just doubled the turn speed
 
         print('INFO: Delay ({})'.format(init_delay)) 
         time.sleep(init_delay)  # give it a second to pid to start
@@ -142,17 +142,17 @@ class control:
     """
     def force_right_turn(self):
         if self.corner_turn:
-            self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY*0)
+            self.force_drive(HALF_TURN_DELAY*1.2, STEER_RIGHT, INIT_DELAY*1.3)
         else:
-            self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY*1)
+            self.force_drive(HALF_TURN_DELAY, STEER_RIGHT, INIT_DELAY*1.7)
 
     """Force the Car to Turn Left
     """
     def force_left_turn(self):
         if self.corner_turn:
-            self.force_drive(FULL_TURN_DELAY, STEER_LEFT, INIT_DELAY*1)
+            self.force_drive(FULL_TURN_DELAY*1.3, STEER_LEFT, INIT_DELAY*1)
         else:
-            self.force_drive(FULL_TURN_DELAY, STEER_LEFT, INIT_DELAY*.8)
+            self.force_drive(FULL_TURN_DELAY*1.5, STEER_LEFT, INIT_DELAY*1.55)
 
     def force_road_topleft_center(self):
         self.force_drive(TEST_DELAY, STEER_STRAIGHT)

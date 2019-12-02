@@ -23,6 +23,8 @@ class trafficLightDetector(object):
         self.TAKE_VIDEO = True
         if self.TAKE_VIDEO:
             self.init_video_writer()
+        # flag to tell the car to stop
+        self.stop_now_flag = None
 
     def __del__(self):
         if self.TAKE_VIDEO:
@@ -140,53 +142,87 @@ class trafficLightDetector(object):
                     pt1 = (int(x1), int(y1))
                     boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
 
+                    # see if the traffic light is at the top of the image
+                    # if so, then we should probably stop
+                    if pt0[0] < 5:
+                        self.stop_now_flag.value = 1
+                    else:
+                        self.stop_now_flag.value = 0
+
         if boxSlice is not None:
             boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
             colorDetect = self.detectColor(boxSlice)
             # cv2.imshow("boxSlice", boxSlice)
             # cv2.waitKey(0)
             if self.TAKE_VIDEO and pt0 is not None:
-                cv2.rectangle(img, pt0, pt1, (0, 255, 0), 2)
-                cv2.imwrite("yoloImage.jpeg", img)
-                if colorDetect:
-                    cv2.rectangle(img, (40, 300), (80, 340), (0, 255, 0), -1)
-                    # cv2.addText(img, "GREEN", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1)
-                self.video_writer.write(img)
+                img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
+                # cv2.imwrite("yoloImage.jpeg", img2)
+                if colorDetect == "green":
+                    cv2.rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
+                    # cv2.addText(img2, "GREEN", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1)
+                self.video_writer.write(img2)
                 # print("YOLO Frame information:")
                 # print(type(img))
                 # print(img.shape)
         else:
             colorDetect = "red"
             if self.TAKE_VIDEO:
-                self.video_writer.write(img)
+                img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                self.video_writer.write(img2)
 
         # gc.collect()
         return colorDetect
 
     def detectColor(self, box):
-        height = box.shape[0]
+        # height = box.shape[0]
 
-        # looking for the brightest light
-        gray = cv2.cvtColor(box, cv2.COLOR_BGR2GRAY)
-        radius = 7
-        # blur to make it more robust
-        blur = cv2.GaussianBlur(gray, (radius, radius), 0)
-        # find the coordinates of the brightest pixel
-        (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(blur)
+        kSz = 7
+        lower_green = np.array([0, 100, 0], dtype=np.uint8)
+        upper_green = np.array([100, 255, 100], dtype=np.uint8)
+        mask_green = cv2.inRange(box, lower_green, upper_green)
+        blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
 
-        # display
-        # image = box.copy()
-        # cv2.circle(image, maxLoc, radius, (255, 0, 0), 2)
-        # cv2.imshow("spot", image)
-        # cv2.waitKey(0)
+        area = box.shape[0] * box.shape[1]
+        px_count = len((np.where(blur_green > 0))[0])
 
-        # look at the bottom quarter of the image
-        # this can be adjusted as needed
-        threshold = height * (3.0/4.0)
-        if maxLoc[1] > threshold:
+        if px_count > (area / 10):
             return "green"
         else:
             return "red"
+
+        # looking for the brightest light
+        # gray = cv2.cvtColor(box, cv2.COLOR_BGR2GRAY)
+        # radius = 7
+        # kSz = 7
+        # # blur to make it more robust
+        # blur = cv2.GaussianBlur(gray, (radius, radius), 0)
+        #
+        # lightThreshold = 200
+        # # avgVal = np.average(blur)
+        # # find the coordinates of the brightest pixel
+        # (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(blur)
+        #
+        # # print("yolo average value in bounding box =1 {}".format(avgVal))
+        # # print("yolo max value = {}".format(maxVal))
+        #
+        # # if the average value is below a threshold, then don't do detection
+        # if maxVal < lightThreshold:
+        #     return "red"
+        #
+        # # display
+        # # image = box.copy()
+        # # cv2.circle(image, maxLoc, radius, (255, 0, 0), 2)
+        # # cv2.imshow("spot", image)
+        # # cv2.waitKey(0)
+        #
+        # # look at the bottom quarter of the image
+        # # this can be adjusted as needed
+        # threshold = height * (3.0/4.0)
+        # if maxLoc[1] > threshold:
+        #     return "green"
+        # else:
+        #     return "red"
 
 
     def detectTrafficLight(self, frame):
@@ -204,18 +240,25 @@ class trafficLightDetector(object):
         #     return "red"
 
 
-def runYoloDetector(yolo_pipe, readyFlag, greenFlag):
+def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag):
     pipe_output, pipe_input = yolo_pipe
     pipe_input.close()      # only reading
 
+    readyFlag.value = 1
+
     tld = trafficLightDetector()
+    tld.stop_now_flag = stop_now_flag
+    tld.stop_now_flag.value = 0
+
     tStart = perf_counter()
 
     while True:
-        # set the ready flag high
-        readyFlag.value = 1
         # get the next frame
         nextFrame = pipe_output.recv()
+        # set the ready flag high
+        readyFlag.value = 1
+
+        # do the detection
         color = tld.detectTrafficLight(nextFrame)
         tEnd = perf_counter()
         print(" - yolo - tDiff = {}".format(tEnd - tStart))
@@ -237,6 +280,7 @@ def mainTest():
     imgs = sorted([os.path.join(imgDir, x) for x in imgList])
 
     for i in imgs:
+        print(i)
         testImage = cv2.imread(i)
         color = tld.detectColor(testImage)
 

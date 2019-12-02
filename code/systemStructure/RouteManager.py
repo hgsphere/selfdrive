@@ -1,3 +1,4 @@
+
 import os
 import queue
 import sys
@@ -63,18 +64,21 @@ class RouteManager(object):
         self.lat = None
         self.lon = None
         self.greenFlag = None
+        self.stop_now_flag = None
 
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
+        zz = np.zeros((10,2))
+        self.coords_hist = collections.deque(zz.tolist(),maxlen=10)
         zz = np.zeros((1,10))
         self.heading_hist = collections.deque(zz.tolist()[0],maxlen=10)
         self.last_coords = (0,0)
         self.last_dist_change = 0
         self.last_dist = 0
-
+        self.nextTurn = None
 #    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
-                                  lat, lon, yolo_green_flag):
+                                  lat, lon, yolo_green_flag, stop_now_flag):
         self.laneDetectQ = laneDetect_routeManagerQ
         self.stopDetectQ = stopDetect_routeManagerQ
         self.emergencyStopQ = emergencyStop_routeManagerQ
@@ -82,6 +86,7 @@ class RouteManager(object):
         self.lat = lat
         self.lon = lon
         self.greenFlag = yolo_green_flag
+        self.stop_now_flag = stop_now_flag
 
         while True:
             self.angle = self.laneDetectQ.get()
@@ -121,8 +126,9 @@ class RouteManager(object):
 
         elif self.state == self.States["Lane_Follow"]:
             if self.action_Taken == False:
+                self.asyncDrive.clear()
                 self.asyncDrive.start_LaneFollowing()
-                #self.asyncDrive.setPID(.9,.0015,.9)
+                self.asyncDrive.setPID(.9,.0015,.9)
                 print('Starting GPS Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
@@ -131,13 +137,14 @@ class RouteManager(object):
 
         elif self.state == self.States["GPS_Follow"]:
             if self.action_Taken == False:
+                self.asyncDrive.clear()
                 self.asyncDrive.start_LaneFollowing()
-                #self.asyncDrive.setPID(.9,.015,.9)
+                self.asyncDrive.setPID(.9,.0015,.9)
                 print('Starting Lane Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
             print(G_angle) #I almost had this working but I broke it
-            self.asyncDrive.LaneFollow(self.angle*0 + 4*G_angle)
+            self.asyncDrive.LaneFollow(self.angle*0 + 3*G_angle)
 
         elif self.state == self.States["Force_Forward"]:
             print(self.action_Taken)
@@ -208,9 +215,12 @@ class RouteManager(object):
         # return the next turn
         ## Always do GPS turns
         if self.corner_turn:
-            return self.States["GPS_Follow"]  # nextTurn
+            self.asyncDrive.ctl.corner_turn = True
+            return nextTurn #self.States["GPS_Follow"]  # nextTurn
         # if the light is green, go ahead and skip waiting
         else:
+            self.asyncDrive.ctl.corner_turn = False
+            self.nextTurn = nextTurn
             return self.States["Wait_for_green"]
 
     # print(self.current_path)
@@ -278,7 +288,7 @@ class RouteManager(object):
         #cv.imshow("features", img)
         #time.sleep(5)
         # debug
-        threshDist = self.ips.avg_dst * 5 #4.5
+        threshDist = self.ips.avg_dst * 6 #4.5
         #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
         #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
         print("{} < {} ?".format( dist, threshDist))
@@ -359,74 +369,40 @@ class RouteManager(object):
 
         return heading1 - heading2
 
-    def calc_GPS_angle(self):                                                                                                                                            
-        """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""                                                                        
-        
+    def calc_GPS_angle(self):
+        """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
+
         if (len(self.current_path) < 3):
             return 0
 
         indx = self.quick_index_lookup()
-        nodes = self.current_path[indx:indx+3]                                                                                       
+        nodes = self.current_path[indx:indx + 3]
         # print(nodes)
         if (len(nodes) < 3):
             return 0
 
-        n0,n1,n2 = nodes[0:3]                                                                                                                                         
-        # n0 is closest                                                                                                                                                  
-                                          
+        n0, n1, n2 = nodes[0:3]
+        # n0 is closest
 
         if self.last_coords == self.COORDINATES:
             return 0
-                   
+
         #### New method (heading change based)
         # compute gps based heading of car
-        head = ips.findAbsoluteHeading(self.last_coords,self.COORDINATES)
+        head = ips.findAbsoluteHeading(self.last_coords, self.COORDINATES)
         lasthead = list(self.heading_hist)[9]
         self.heading_hist.append(head)
-        #avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
-        avgHead = head
+        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        avgHead = lasthead
         # find the heading the car should be at
-        nexthead = ips.findAbsoluteHeading(self.COORDINATES,n1)
-        dist =  sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
-        
-        heading_offset =  self.heading_diff(nexthead, avgHead)*dist/10
+        nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
+        dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
+
+        heading_offset = self.heading_diff(nexthead, avgHead)
 
         self.last_coords = self.COORDINATES
         print(heading_offset)
         return heading_offset
-
-        # Compute heading of car to 2 waypoints ahead (n2)
-        car_heading = ips.findAbsoluteHeading(self.COORDINATES,n3)     # was n2                                                    
-
-        # Compute heading of car to next-next waypoint (n2)
-        # assume car is following the current path's direction
-        car_heading2 = ips.findAbsoluteHeading(self.COORDINATES,n4) # was n3
-        # compare car's heading against the waypoints heading
-        path_heading = ips.findAbsoluteHeading(n0,n3) # was n2
-
-        # print('Car to 4 waypoints ahead of closest: {}'.format(car_heading))
-        # print('Car to 6 waypoints ahead of closest: {}'.format(car_heading2))
-        # print('Closest Waypoint to two waypoints ahead: {}'.format(path_heading))
-
-        # calulate the curvature of the road                                                                                                                             
-        future_heading = ips.findAbsoluteHeading(n0,n4)   # was n3                                                                                
-
-        # this is the current car heading error
-        delta_heading = self.heading_diff(car_heading2, car_heading)
-
-        # calc curvature
-        curvature = self.heading_diff(future_heading,path_heading)
-
-        # print('Closest waypoint to 3 waypoints ahead: {}'.format(future_heading) )
-        # print('car to 4 ahead - car to 6 ahead: {}'.format(delta_heading))
-        # print('Closest point to 4 ahead - closest to 6 ahead: {}'.format(curvature))
-
-        heading_error = delta_heading - curvature
-        # add in a little future nudging
-        GPS_correction_angle = 1.2*heading_error
-        # print('Heading Error: {}'.format(heading_error))
-        # print(GPS_correction_angle)
-        return GPS_correction_angle
 
     def RouteTick(self):
         #print(self.state)
@@ -484,6 +460,11 @@ class RouteManager(object):
                 self.state = self.States["Crit_wp_stop"]
 
             elif self.inRangeOfStopLine():
+                self.action_Taken = False
+                self.state = self.States["Stop"]
+
+            # stop if YOLO detected that we're close to the traffic light
+            elif self.stop_now_flag.value > 0:
                 self.action_Taken = False
                 self.state = self.States["Stop"]
 
@@ -568,7 +549,12 @@ class RouteManager(object):
 
         elif self.state == self.States["Wait_for_green"]:
             if self.greenFlag.value:
-                self.state = self.States["GPS_Follow"]
+                if self.nextTurn == self.States["Force_Forward"]:
+                    self.state = self.States["GPS_Follow"]
+                else:
+                    self.state = self.nextTurn
+                #quiting GPS turns for now
+                #self.state = self.States["GPS_Follow"]
             # debugging YOLO detector                                                                                                                                    
             print("\n\n==========================================================")                                                                                      
             print("Yolo detected green: {}".format(self.greenFlag.value))                                                                                                

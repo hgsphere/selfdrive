@@ -33,6 +33,7 @@ class SystemManager(object):
         self.yolo_pipe = mp.Pipe()                  # transfer the next frame
         self.yolo_ready_flag = mp.Value('i', 0)     # detector is ready for another frame
         self.yolo_green_flag = mp.Value('i', 0)     # green light detected
+        self.stop_now_flag = mp.Value('i', 0)       # traffic light is close, stop
         # create the objects
         self.imgProc = imageprocessor()
         self.routeManager = RouteManager()
@@ -83,7 +84,8 @@ class SystemManager(object):
                                                     self.emergencyStop_routeManagerQ,
                                                     #self.IPS_routeManagerQ),
                                                     lat,lon,
-                                                    self.yolo_green_flag),
+                                                    self.yolo_green_flag,
+                                                    self.stop_now_flag),
                                               name="RouteManager")
             routeManagerProcess.start()
 
@@ -91,7 +93,8 @@ class SystemManager(object):
             yoloDetectorProcess = ctx.Process(target=runYoloDetector,
                                               args=(self.yolo_pipe,
                                                     self.yolo_ready_flag,
-                                                    self.yolo_green_flag),
+                                                    self.yolo_green_flag,
+                                                    self.stop_now_flag),
                                               name="YoloDetector")
             yoloDetectorProcess.start()
     

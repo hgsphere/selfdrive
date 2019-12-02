@@ -8,7 +8,8 @@ from findLines import displayImage
 
 class EmergencyStopDetector(object):
     def __init__(self):
-        self.threshold = None
+        self.pixel_threshold = 500
+        self.count_threshold = 450
 
     def detectStop(self, frame):
         """Detects if we should stop the car
@@ -37,22 +38,27 @@ class EmergencyStopDetector(object):
         y0 = 90
         y1 = 210
 
-        roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
-        rowNumbers = np.linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
+        # roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
+        # rowNumbers = np.linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
         # print(rowNumbers)
-        roiRowSample = roi[rowNumbers]
+        # roiRowSample = roi[rowNumbers]
+
+        # fast ROI calculation
+        stripes = np.linspace(y0, y1, num=5, dtype="uint16")
+        roi = np.asanyarray(img[stripes, x0:x1])
 
         # roi = img[y0:y1, x0:x1]
-        return roiRowSample
+        # return roiRowSample
+        return roi
 
     def checkForCloseObject(self, depthFrame):
         #print(depthFrame.shape)
-        count = len((np.where(depthFrame < 500))[0])
+        count = len((np.where(depthFrame < self.pixel_threshold))[0])
         #print(count)
         print("num values above threshold: {}".format(count))
         # print("min value = {}".format(depthFrame.min()))
         # return depthFrame.max() < self.threshold
-        return count > 6000
+        return count > self.count_threshold
 
     def parseFrame(self, depthFrame):
         """Returns True if something is ahead of it too close, False otherwise"""

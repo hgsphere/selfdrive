@@ -39,7 +39,9 @@ class asyncDrive:
 
 
     def setPID(self,kp,ki,kd):
-        self.pid = PID(kp,ki,kd)
+        self.pid.kp = kp
+        self.pid.ki = ki
+        self.pid.kd = kd
 
     def clear(self):
         zz = np.zeros((1,20))
@@ -132,8 +134,8 @@ class asyncDrive:
 
         #if df < 20:
         #    df = 20
-        df = 17
-        avg = np.mean([means[i][0] for i in range(df-2,df+2)])
+        df = 18
+        avg = np.mean([means[i][0] for i in range(df-1,df+1)])
         # print("here")
         # print(avg)
         # print("here_after")
