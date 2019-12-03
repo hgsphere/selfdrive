@@ -59,6 +59,7 @@ class RouteManager(object):
             self.route_critical_waypoints = json.load(jf)
         self.nearStopThreshold = self.ips.avg_dst * 4
         self.corner_turn = False
+        self.threshDist = 80
 
         self.stopCounter = 0
         self.lat = None
@@ -76,6 +77,7 @@ class RouteManager(object):
         self.last_dist_change = 0
         self.last_dist = 0
         self.nextTurn = None
+
 #    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
                                   lat, lon, yolo_green_flag, stop_now_flag):
@@ -212,6 +214,12 @@ class RouteManager(object):
         self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
         print("Now we're going to stop line: {}".format(self.name))
 
+        # The distance away from the stop line we stop is based on which one we're heading for
+        if self.corner_turn:
+            self.threshDist = self.ips.avg_dst * 4
+        else:
+            self.threshDist = self.ips.avg_dst * 6
+
         # return the next turn
         ## Always do GPS turns
         if self.corner_turn:
@@ -288,17 +296,17 @@ class RouteManager(object):
         #cv.imshow("features", img)
         #time.sleep(5)
         # debug
-        threshDist = self.ips.avg_dst * 6 #4.5
+
         #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
         #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
-        print("{} < {} ?".format( dist, threshDist))
+        print("{} < {} ?".format( dist, self.threshDist))
         print("comparing {} to {}".format((w, h), targetPt))
         #print('####################################### ' + str(len(route)))
 
         # if the node is the close one, and within a distance
         
         # if (w, h) == targetPt:
-        if dist < threshDist:
+        if dist < self.threshDist:
             print("!!!!!!!!!!!!!!!!!!!!!!! STOP !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return True
 
