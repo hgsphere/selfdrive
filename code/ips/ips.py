@@ -7,6 +7,7 @@ import cv2 as cv
 import numpy as np
 from math import sqrt
 from multiprocessing import Value
+import time
 from networkx import (DiGraph as nx_DiGraph,
                       from_dict_of_dicts as nx_from_dict_of_dicts,
                       shortest_path as nx_shortest_path)
@@ -174,13 +175,16 @@ def getCurrentCoor(color="Yellow"):
     return lat, lon
 
 #def pollCoordinates(ips_routeManagerQ):
-def pollCoordinates(lat, lon):
+def pollCoordinates(lat, lon, debug=False):
     #global latitude, longitude
 
     while True:
         _lat, _lon = getCurrentCoor()
         lat.value = _lat
         lon.value = _lon
+        time.sleep(0.05)
+        if(debug):
+            print("latitude: {}, longitude: {}".format(_lat, _lon))
         #latitude = lat
         #longitude = lon
         # ips_routeManagerQ.put_nowait(coords)
@@ -388,8 +392,10 @@ def main():
     ips = IPS()
     # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
     # displayRouteImg("path", ips.displayDirectedGraph())
-
-    testPathFinding(ips)
+    lat = Value('d', 0.0)
+    lon = Value('d', 0.0)
+    pollCoordinates(lat, lon, True)
+    # testPathFinding(ips)
     # testFeatureFinding(ips)
     # testTurnDecision()
 
