@@ -15,6 +15,8 @@ from networkx import (DiGraph as nx_DiGraph,
 sys.path.append(os.getcwd())
 from digraph import (drawLine, drawPt, getPtName, decodePtName)
 import features
+import datetime
+
 
 # Import global to reference files by full path
 sys.path.append(os.path.abspath("../systemStructure"))
@@ -179,12 +181,15 @@ def pollCoordinates(lat, lon, debug=False):
     #global latitude, longitude
 
     while True:
+        #beforeTime = time.perf_counter()
         _lat, _lon = getCurrentCoor()
         lat.value = _lat
         lon.value = _lon
-        time.sleep(0.05)
+        time.sleep(0.04)
+        #afterTime = time.perf_counter()
         if(debug):
             print("latitude: {}, longitude: {}".format(_lat, _lon))
+            #print("diff time = {}".format(afterTime - beforeTime))
         #latitude = lat
         #longitude = lon
         # ips_routeManagerQ.put_nowait(coords)
