@@ -60,6 +60,7 @@ class RouteManager(object):
         self.nearStopThreshold = self.ips.avg_dst * 4
         self.corner_turn = False
         self.threshDist = 80
+        self.crossover_idx = 0
 
         self.stopCounter = 0
         self.lat = None
@@ -180,7 +181,6 @@ class RouteManager(object):
         print("We've found a stop line: {}".format(self.name))
         # look-up table for the easy corner stops
 
-
         # path from the previous stop line to the next critical waypoint
         # ensure that the first point passed to findPath is the stopLine coordinates
         stopLineCoords = features.getStopLineCoordinates(self.name)
@@ -189,8 +189,11 @@ class RouteManager(object):
         else:
             stopLineCoords = decodePtName(stopLineCoords)
 
+        # now plan a path from the stop line to the next critical waypoint
         nextTurnPath = self.ips.findPath(*stopLineCoords,
                                          *decodePtName(self.route_critical_waypoints[self.current_path_idx]))
+
+        # determine which direction we're supposed to turn
         if self.name is "stopLine0" or self.name is "stopLine3":
             nextTurn = self.States["Force_Left_Turn"]
             self.corner_turn = True
@@ -200,13 +203,13 @@ class RouteManager(object):
             self.corner_turn = True
             nextStart = nextTurnPath[5]
         elif len(nextTurnPath) >= 3:
-            nextTurn = self.States[ips.computeTurnDirection(nextTurnPath[0:5])]
+            computedDirection = ips.computeTurnDirection(nextTurnPath[0:5])
+            nextTurn = self.States[computedDirection]
             nextStart = nextTurnPath[5]
         else:
             print("Error! next path is too short!!!!!!!!!!!!")
             nextTurn = self.States["Force_Forward"]
             nextStart = self.COORDINATES
-
 
         # now from where the turn ends, find the next stop line
         print("Current coords are {}".format(self.COORDINATES))
@@ -214,11 +217,23 @@ class RouteManager(object):
         self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
         print("Now we're going to stop line: {}".format(self.name))
 
+        # figure out the point where the GPS turn is supposed to stop
+        crossoverPt = self.ips.getCrossoverPt(self.name)
+        # recalculate the full path from current location to the next stop line
+        self.current_path = self.ips.findPath(*self.COORDINATES, *decodePtName(self.current_path[-1]))
+        # find the index in the full path that
+        try:
+            self.crossover_idx = self.current_path.index(crossoverPt)
+        except ValueError:
+            self.crossover_idx = 15
+            print("Error computing the crossover point, defaulting to 15!\n")
+
         # The distance away from the stop line we stop is based on which one we're heading for
-        if self.corner_turn:
-            self.threshDist = self.ips.avg_dst * 4
-        else:
+        # different than corner_turn because it's the next stopline, not current one
+        if int(self.name[-1]) > 3:
             self.threshDist = self.ips.avg_dst * 6
+        else:
+            self.threshDist = self.ips.avg_dst * 4
 
         # return the next turn
         ## Always do GPS turns
@@ -318,7 +333,7 @@ class RouteManager(object):
     def TerminateGPS(self):
         """Are we in range of the next stop line? This is ~ 12th element in the current path list."""
         w, h = self.COORDINATES
-        targetPt = self.current_path[9]
+        targetPt = self.current_path[self.crossover_idx]
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         
         threshDist = self.ips.avg_dst * 3

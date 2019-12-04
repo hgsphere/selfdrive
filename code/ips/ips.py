@@ -303,6 +303,16 @@ class IPS(object):
         pathInt = [decodePtName(n) for n in path]
         return pathInt
 
+    def getCrossoverPt(self, name):
+        """Find the the point in the path that is where the car
+
+        should cross over from GPS turning to lane following again.
+        Input is the name of the destination stopline.
+        Output is the crossover point.
+        """
+
+        return features.getCrossoverPt(name)
+
     def displayPath(self, path):
         """path is a list of node names in the graph.
         This is great because we have encoded the coordinates in the node names.
