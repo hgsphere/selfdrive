@@ -59,7 +59,7 @@ class RouteManager(object):
             self.route_critical_waypoints = json.load(jf)
         self.nearStopThreshold = self.ips.avg_dst * 4
         self.corner_turn = False
-        self.threshDist = 80
+        self.threshDist = self.ips.avg_dst * 6.2
         self.crossover_idx = 0
 
         self.stopCounter = 0
@@ -78,6 +78,7 @@ class RouteManager(object):
         self.last_dist_change = 0
         self.last_dist = 0
         self.nextTurn = None
+        self.prev_GPS_angle = 0
 
 #    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
@@ -136,13 +137,16 @@ class RouteManager(object):
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
             print(G_angle)
-            self.asyncDrive.LaneFollow(self.angle*1+ 0*G_angle)
+            # TODO: mix GPS into this
+            self.asyncDrive.LaneFollow(self.angle*1 + .25*0*G_angle)
+            # self.asyncDrive.LaneFollow(self.angle * 1)
 
         elif self.state == self.States["GPS_Follow"]:
             if self.action_Taken == False:
                 self.asyncDrive.clear()
                 self.asyncDrive.start_LaneFollowing()
-                self.asyncDrive.setPID(.9,.0015,.9)
+                # self.asyncDrive.setPID(.9,.0015,.9)
+                self.asyncDrive.setPID(.9, .0015, 0.9)
                 print('Starting Lane Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
@@ -219,27 +223,21 @@ class RouteManager(object):
 
         # figure out the point where the GPS turn is supposed to stop
         crossoverPt = self.ips.getCrossoverPt(self.name)
+        # print(" - The crossover point is {} - ".format(crossoverPt))
         # recalculate the full path from current location to the next stop line
-        self.current_path = self.ips.findPath(*self.COORDINATES, *decodePtName(self.current_path[-1]))
+        self.current_path = self.ips.findPath(*self.COORDINATES, *self.current_path[-1])
         # find the index in the full path that
         try:
-            self.crossover_idx = self.current_path.index(crossoverPt)
+            self.crossover_idx = self.current_path.index(decodePtName(crossoverPt))
         except ValueError:
             self.crossover_idx = 15
             print("Error computing the crossover point, defaulting to 15!\n")
-
-        # The distance away from the stop line we stop is based on which one we're heading for
-        # different than corner_turn because it's the next stopline, not current one
-        if int(self.name[-1]) > 3:
-            self.threshDist = self.ips.avg_dst * 6
-        else:
-            self.threshDist = self.ips.avg_dst * 4
 
         # return the next turn
         ## Always do GPS turns
         if self.corner_turn:
             self.asyncDrive.ctl.corner_turn = True
-            return nextTurn #self.States["GPS_Follow"]  # nextTurn
+            return self.States["GPS_Follow"]  # nextTurn
         # if the light is green, go ahead and skip waiting
         else:
             self.asyncDrive.ctl.corner_turn = False
@@ -362,11 +360,6 @@ class RouteManager(object):
     def quick_index_lookup(self):
         w, h = self.ips.findClosestPathPoint(self.current_path,*self.COORDINATES, getDist=False)
         tup = (w,h)
-        #print('Closest point')
-        #print(tup)
-        #print('Current path')
-        #print(self.current_path)
-        #indx = np.where(self.current_path == tup)
         try:
             indx = self.current_path.index(tup)
         except Exception as e:
@@ -380,7 +373,20 @@ class RouteManager(object):
         #print(indx)
         return indx
 
-    def heading_diff(self,heading1,heading2):
+    def gen_arc(self, head, radius, coordinates):
+        arcCount = 20
+        pheads = np.linspace(head - 60, head + 60, num=arcCount)
+        # print(pheads)
+        x = np.cos(np.deg2rad(pheads)) * radius + coordinates[0]
+        y = np.sin(np.deg2rad(pheads)) * radius + coordinates[1]
+        pcoords = np.zeros((arcCount, 2))
+        for i in range(0, arcCount):
+            pcoords[i, :] = x[i], y[i]
+        return pcoords, pheads
+
+
+
+    def heading_diff(self, heading1, heading2):
         # heading1 - heading2 
         #(fix 359 - 1 = 358 to 359 - 1 = -2)
         #(fix 1 - 359 - -358 to 1 - 359 = 2)
@@ -392,39 +398,60 @@ class RouteManager(object):
 
         return heading1 - heading2
 
+    def find_look_ahead(self, head, rad):
+        head = head - 90
+        pcoords, pheads = self.gen_arc(head, rad, self.COORDINATES)
+        indx = self.quick_index_lookup()
+        pathSlice = self.current_path[indx:]
+        distArray = np.zeros((len(pcoords), len(pathSlice)))
+
+        for i, arcpt in enumerate(pcoords, start=0):
+            for j, pt in enumerate(pathSlice):
+                dist = sqrt(pow(arcpt[0] - pt[0], 2) + pow(arcpt[1] - pt[1], 2))
+                distArray[i][j] = dist
+
+        minIdx = np.unravel_index(np.argmin(distArray, axis=None), distArray.shape)
+        # print(pcoords)
+        # print("Minimum index is {}".format(minIdx))
+        minPt = pheads[minIdx[0]]
+        print("Minimum point is {}".format(minPt))
+        return self.heading_diff(minPt, head)
+
     def calc_GPS_angle(self):
         """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
 
-        if (len(self.current_path) < 3):
+        if len(self.current_path) < 5:
             return 0
 
         indx = self.quick_index_lookup()
-        nodes = self.current_path[indx:indx + 3]
+        nodes = self.current_path[indx:indx + 5]
         # print(nodes)
-        if (len(nodes) < 3):
+        if len(nodes) < 5:
             return 0
 
-        n0, n1, n2 = nodes[0:3]
+        # n0, n1, n2 = nodes[0:3]
+        n2 = nodes[4]
         # n0 is closest
 
         if self.last_coords == self.COORDINATES:
-            return 0
+            return self.prev_GPS_angle
 
         #### New method (heading change based)
         # compute gps based heading of car
         head = ips.findAbsoluteHeading(self.last_coords, self.COORDINATES)
         lasthead = list(self.heading_hist)[9]
         self.heading_hist.append(head)
-        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
-        avgHead = lasthead
+        avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        # avgHead = lasthead
+        heading_offset = self.find_look_ahead(avgHead, 100)
         # find the heading the car should be at
-        nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
-        dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
-
-        heading_offset = self.heading_diff(nexthead, avgHead)
-
+        # nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
+        # #dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
+        #
+        # heading_offset = self.heading_diff(nexthead, avgHead)
+        print(list(self.heading_hist))
         self.last_coords = self.COORDINATES
-        print(heading_offset)
+        self.prev_GPS_angle = heading_offset
         return heading_offset
 
     def RouteTick(self):
@@ -572,10 +599,12 @@ class RouteManager(object):
 
         elif self.state == self.States["Wait_for_green"]:
             if self.greenFlag.value:
-                if self.nextTurn == self.States["Force_Forward"]:
-                    self.state = self.States["GPS_Follow"]
-                else:
-                    self.state = self.nextTurn
+                self.state = self.States["GPS_Follow"]
+                # if self.nextTurn == self.States["Force_Forward"]:
+                #     self.state = self.States["GPS_Follow"]
+                # else:
+                #     self.state = self.nextTurn
+
                 #quiting GPS turns for now
                 #self.state = self.States["GPS_Follow"]
             # debugging YOLO detector                                                                                                                                    

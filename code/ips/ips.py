@@ -221,6 +221,7 @@ class IPS(object):
             if dist > 0:
                 distances.append(dist)
         self.avg_dst = int(np.mean(distances))
+        print("Average distance between nodes is: {}".format(self.avg_dst))
 
     def findNextStopLine(self, x, y):
         """Instead of finding straight line distance,
