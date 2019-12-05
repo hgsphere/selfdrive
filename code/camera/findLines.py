@@ -16,7 +16,7 @@ writer_rbg = None
 def init_video():
     global writer_rgb
     shape_rgb = (424, 240)
-    frame_rate_rgb = 60
+    frame_rate_rgb = 30
     fourcc = cv.VideoWriter_fourcc(*"MJPG")                                                                                                                              
     outpath_rgb = os.path.join(os.getcwd(), "logVideo.avi")                                                                                                        
     #outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")                                                                                                      

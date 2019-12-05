@@ -59,15 +59,22 @@ class RouteManager(object):
             self.route_critical_waypoints = json.load(jf)
         self.nearStopThreshold = self.ips.avg_dst * 4
         self.corner_turn = False
-        self.threshDist = self.ips.avg_dst * 6.2
+        self.threshDist = self.ips.avg_dst * 7
+
+        # index in current_path for where start turning the wheel, and go back to lane following
+        self.turn_idx = 0
         self.crossover_idx = 0
 
+        # stop at each stop line for about 1 second
         self.stopCounter = 0
+
+        # shared globals
         self.lat = None
         self.lon = None
         self.greenFlag = None
         self.stop_now_flag = None
 
+        # history variables
         zz = np.zeros((1,30)) 
         self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
         zz = np.zeros((10,2))
@@ -80,7 +87,6 @@ class RouteManager(object):
         self.nextTurn = None
         self.prev_GPS_angle = 0
 
-#    def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ, ips_routeManagerQ):
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
                                   lat, lon, yolo_green_flag, stop_now_flag):
         self.laneDetectQ = laneDetect_routeManagerQ
@@ -130,7 +136,7 @@ class RouteManager(object):
 
         elif self.state == self.States["Lane_Follow"]:
             if self.action_Taken == False:
-                self.asyncDrive.clear()
+                # self.asyncDrive.clear()
                 self.asyncDrive.start_LaneFollowing()
                 self.asyncDrive.setPID(.9,.0015,.9)
                 print('Starting GPS Following')
@@ -138,7 +144,7 @@ class RouteManager(object):
             G_angle = self.calc_GPS_angle()
             print(G_angle)
             # TODO: mix GPS into this
-            self.asyncDrive.LaneFollow(self.angle*1 + .25*0*G_angle)
+            self.asyncDrive.LaneFollow(self.angle*1*0.85 + 0.15*3*G_angle)
             # self.asyncDrive.LaneFollow(self.angle * 1)
 
         elif self.state == self.States["GPS_Follow"]:
@@ -150,8 +156,9 @@ class RouteManager(object):
                 print('Starting Lane Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
-            print(G_angle) #I almost had this working but I broke it
-            self.asyncDrive.LaneFollow(self.angle*0 + 3*G_angle)
+            G_angle = self.asyncDrive.pid.thres(G_angle, 15)
+            print(G_angle)
+            self.asyncDrive.LaneFollow(self.angle*0 + 2.0*G_angle)
 
         elif self.state == self.States["Force_Forward"]:
             print(self.action_Taken)
@@ -161,16 +168,37 @@ class RouteManager(object):
                 self.action_Taken = True
         elif self.state == self.States["Force_Right_Turn"]:
             print(self.action_Taken)
+            # if self.action_Taken == False:
+            #     print("MOVING RIGHT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            #     self.asyncDrive.right_turn()
+            #     self.action_Taken = True
             if self.action_Taken == False:
-                print("MOVING RIGHT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                self.asyncDrive.right_turn()
+                self.asyncDrive.clear()
+                self.asyncDrive.start_LaneFollowing()
+                self.asyncDrive.setPID(.9,.0015,.9)
+                print('Starting Right Turn')
                 self.action_Taken = True
+
+            # detect if we've hit the turning point
+            if self.inRangeOfGenericPt(self.current_path[self.turn_idx]):
+                self.asyncDrive.steer_right()
+
         elif self.state == self.States["Force_Left_Turn"]:
             print(self.action_Taken)
+            # if self.action_Taken == False:
+            #     print("MOVING LEFT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            #     self.asyncDrive.left_turn()
+            #     self.action_Taken = True
             if self.action_Taken == False:
-                print("MOVING LEFT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-                self.asyncDrive.left_turn()
+                self.asyncDrive.clear()
+                self.asyncDrive.start_LaneFollowing()
+                self.asyncDrive.setPID(.9,.0015,.9)
+                print('Starting Left Turn')
                 self.action_Taken = True
+
+            if self.inRangeOfGenericPt(self.current_path[self.turn_idx]):
+                self.asyncDrive.steer_left()
+
         elif self.state == self.States["Wait_for_green"]:
             pass
 
@@ -183,6 +211,7 @@ class RouteManager(object):
         self.last_dist_change = 0
         print(self.current_path)
         print("We've found a stop line: {}".format(self.name))
+        old_name = self.name
         # look-up table for the easy corner stops
 
         # path from the previous stop line to the next critical waypoint
@@ -221,23 +250,35 @@ class RouteManager(object):
         self.current_path, self.name = self.ips.findNextStopLine(*nextStart)
         print("Now we're going to stop line: {}".format(self.name))
 
-        # figure out the point where the GPS turn is supposed to stop
-        crossoverPt = self.ips.getCrossoverPt(self.name)
+        # figure out the point where the GPS turn is supposed to start and stop
+        print("Going from {} to {} turning {}".format(old_name, self.name, nextTurn))
+        turnStartPt = self.ips.getTurningPt(old_name, nextTurn)
+        # crossoverPt = self.ips.getCrossoverPt(self.name)
+        straightPt = self.ips.getStraightPt(self.name)
         # print(" - The crossover point is {} - ".format(crossoverPt))
         # recalculate the full path from current location to the next stop line
         self.current_path = self.ips.findPath(*self.COORDINATES, *self.current_path[-1])
-        # find the index in the full path that
+
+        # find the index in the full path for when to start turning
         try:
-            self.crossover_idx = self.current_path.index(decodePtName(crossoverPt))
+            print("Finding the index of pt {}".format(turnStartPt))
+            self.turn_idx = self.current_path.index(decodePtName(turnStartPt))
+        except ValueError:
+            self.turn_idx = 3
+            print("Error computing the turning point, defaulting to {}!\n".format(self.turn_idx))
+            print(self.current_path[:9])
+        # find the index in the full path for when to stop turning
+        try:
+            self.crossover_idx = self.current_path.index(decodePtName(straightPt))
         except ValueError:
             self.crossover_idx = 15
-            print("Error computing the crossover point, defaulting to 15!\n")
+            print("Error computing the crossover point, defaulting to {}!\n".format(self.crossover_idx))
 
         # return the next turn
         ## Always do GPS turns
         if self.corner_turn:
             self.asyncDrive.ctl.corner_turn = True
-            return self.States["GPS_Follow"]  # nextTurn
+            return nextTurn #self.States["GPS_Follow"]  # nextTurn
         # if the light is green, go ahead and skip waiting
         else:
             self.asyncDrive.ctl.corner_turn = False
@@ -258,30 +299,35 @@ class RouteManager(object):
         # if there path couldn't be found got to Init
         # return self.States["Init"]
 
+    def inRangeOfGenericPt(self, targetPt, threshold=80):
+        w, h = self.COORDINATES
+        dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
+
+        if dist < threshold:
+            print("{} is within {} of {}".format(self.COORDINATES, dist, targetPt))
+            return  True
+        else:
+            return False
+
     def inRangeOfCritWaypoint(self):
         """Are we in range of a critical waypoint? These are defined in route.json"""
-        # w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
-        w, h = self.COORDINATES
+        # w, h = self.COORDINATES
 
         # If all waypoints have been reached restart
         if self.current_path_idx == len(self.route_critical_waypoints):
             self.current_path_idx = 0
 
         targetPt = decodePtName(self.route_critical_waypoints[self.current_path_idx])
-        dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
-        #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-        #print(self.current_path)
-        #print(self.current_path[self.current_path_idx])
-        #print('####################################### ' + str(self.current_path_idx))
-        #print(self.COORDINATES)
+        # dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         # if the node is the close one, and within a distance
-        # if (w, h) == self.route_critical_waypoints[self.current_path_idx]: ### PROBLEM HERE current_path_idx is None
-        if dist < self.ips.avg_dst:
-            # increment the critical waypoint index
+
+        if self.inRangeOfGenericPt(targetPt, threshold=self.ips.avg_dst * 2):
             print('#######################################\n\t\t CRITICAL WAYPOINT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n#######################################')
+            # increment the critical waypoint index
             self.current_path_idx += 1
             return  True
-        return False
+        else:
+            return False
 
     def inRangeOfStopLine(self):
         """Are we in range of the next stop line? This is the last element in the current path list."""
@@ -420,36 +466,79 @@ class RouteManager(object):
     def calc_GPS_angle(self):
         """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
 
-        if len(self.current_path) < 5:
+        if (len(self.current_path) < 3):
             return 0
 
         indx = self.quick_index_lookup()
-        nodes = self.current_path[indx:indx + 5]
+        nodes = self.current_path[indx:indx + 3]
         # print(nodes)
-        if len(nodes) < 5:
+        if (len(nodes) < 3):
             return 0
 
-        # n0, n1, n2 = nodes[0:3]
-        n2 = nodes[4]
+        n0, n1, n2 = nodes[0:3]
         # n0 is closest
 
         if self.last_coords == self.COORDINATES:
-            return self.prev_GPS_angle
+            return 0
 
         #### New method (heading change based)
         # compute gps based heading of car
         head = ips.findAbsoluteHeading(self.last_coords, self.COORDINATES)
         lasthead = list(self.heading_hist)[9]
         self.heading_hist.append(head)
-        avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
-        # avgHead = lasthead
-        heading_offset = self.find_look_ahead(avgHead, 100)
+        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        avgHead = lasthead
         # find the heading the car should be at
-        # nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
+        nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
+        # dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
+
+        heading_offset = self.heading_diff(nexthead, avgHead)
+
+        self.last_coords = self.COORDINATES
+        print(heading_offset)
+        return heading_offset
+
+    def calc_GPS_angle_new(self):
+        """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
+        lookahead_num = 3
+
+        if len(self.current_path) < lookahead_num:
+            return 0
+
+        indx = self.quick_index_lookup()
+        nodes = self.current_path[indx:indx + lookahead_num]
+        # print(nodes)
+        if len(nodes) < lookahead_num:
+            return 0
+
+        # n0, n1, n2 = nodes[0:3]
+        n2 = nodes[lookahead_num-1]
+        # n0 is closest
+
+        if self.last_coords == self.COORDINATES:
+            return self.prev_GPS_angle
+
+        self.coords_hist.append(self.COORDINATES)
+        old_coords = list(self.coords_hist)[7]
+
+        #### New method (heading change based)
+        # compute gps based heading of car
+        if old_coords == (0, 0):
+            head = ips.findAbsoluteHeading(self.last_coords, self.COORDINATES)
+        else:
+            head = ips.findAbsoluteHeading(old_coords, self.COORDINATES)
+        lasthead = list(self.heading_hist)[9]
+        self.heading_hist.append(head)
+        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        avgHead = lasthead
+
+        # heading_offset = self.find_look_ahead(avgHead, 100)
+        # find the heading the car should be at
+        nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
         # #dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
         #
-        # heading_offset = self.heading_diff(nexthead, avgHead)
-        print(list(self.heading_hist))
+        heading_offset = self.heading_diff(nexthead, avgHead)
+        # print(list(self.heading_hist))
         self.last_coords = self.COORDINATES
         self.prev_GPS_angle = heading_offset
         return heading_offset
@@ -491,7 +580,7 @@ class RouteManager(object):
             if self.stopCounter == 0:
                 self.asyncDrive.stop()
             self.stopCounter += 1
-            if self.stopCounter == 60:
+            if self.stopCounter == 20:
                 self.stopCounter = 0
                 self.state = self.States["Lane_Follow"]
 
@@ -507,7 +596,7 @@ class RouteManager(object):
 
             elif self.inRangeOfCritWaypoint():
                 self.action_Taken = False
-                self.state = self.States["Crit_wp_stop"]
+            #     self.state = self.States["Crit_wp_stop"]
 
             elif self.inRangeOfStopLine():
                 self.action_Taken = False
@@ -523,8 +612,8 @@ class RouteManager(object):
 
             # debugging YOLO detector
             print("\n\n==========================================================")
-            print("Yolo detected green: {}".format(self.greenFlag.value))
-            print("\n\n")
+            # print("Yolo detected green: {}".format(self.greenFlag.value))
+            # print("\n\n")
             # end YOLO section
 
         elif self.state == self.States["GPS_Follow"]:
@@ -537,9 +626,9 @@ class RouteManager(object):
                 self.action_Taken = False
                 self.state = self.States["Stop"]
 
-            elif self.inRangeOfCritWaypoint():
-                self.action_Taken = False
-                self.state = self.States["Crit_wp_stop"]
+            # elif self.inRangeOfCritWaypoint():
+            #     self.action_Taken = False
+            #     self.state = self.States["Crit_wp_stop"]
 
             elif self.TerminateGPS():
                 self.action_Taken = False
@@ -573,11 +662,15 @@ class RouteManager(object):
                 self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
-            elif self.asyncDrive.forceDriveDone:
+            elif self.inRangeOfGenericPt(self.current_path[self.crossover_idx]):
                 self.action_Taken = False
-                self.asyncDrive.forceDriveDone = False
-                self.corner_turn = False
                 self.state = self.States["Lane_Follow"]
+
+            # elif self.asyncDrive.forceDriveDone:
+            #     self.action_Taken = False
+            #     self.asyncDrive.forceDriveDone = False
+            #     self.corner_turn = False
+            #     self.state = self.States["Lane_Follow"]
 
             else:
                 self.state = self.States["Force_Right_Turn"]
@@ -588,22 +681,25 @@ class RouteManager(object):
                 self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
-            elif self.asyncDrive.forceDriveDone:
+            elif self.inRangeOfGenericPt(self.current_path[self.crossover_idx]):
                 self.action_Taken = False
-                self.asyncDrive.forceDriveDone = False
-                self.corner_turn = False
                 self.state = self.States["Lane_Follow"]
+
+            # elif self.asyncDrive.forceDriveDone:
+            #     self.action_Taken = False
+            #     self.asyncDrive.forceDriveDone = False
+            #     self.corner_turn = False
+            #     self.state = self.States["Lane_Follow"]
 
             else:
                 self.state = self.States["Force_Left_Turn"]
 
         elif self.state == self.States["Wait_for_green"]:
             if self.greenFlag.value:
-                self.state = self.States["GPS_Follow"]
-                # if self.nextTurn == self.States["Force_Forward"]:
-                #     self.state = self.States["GPS_Follow"]
-                # else:
-                #     self.state = self.nextTurn
+                if self.nextTurn == self.States["Force_Forward"]:
+                    self.state = self.States["GPS_Follow"]
+                else:
+                    self.state = self.nextTurn
 
                 #quiting GPS turns for now
                 #self.state = self.States["GPS_Follow"]

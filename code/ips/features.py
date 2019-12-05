@@ -161,6 +161,34 @@ graphCrossoverPts = {
     "379,97"    : "stopLine7",
 }
 
+# points are labeled based on the stop line they immediately follow
+graphTurningPts = {
+    "282,29"    : "stopLine0",
+    "237,127"   : "stopLine1",
+    "833,1444"  : "stopLine2",
+    "805,1539"  : "stopLine3",
+}
+
+# left, center, right
+graphTurningPtsComplex = {
+    "stopLine4" : ["397,711", "390,716", "400,752"],
+    "stopLine5" : ["431,836", "447,821", "486,829"],
+    "stopLine6" : ["534,787", "539,780", "539,736"],
+    "stopLine7" : ["496,673", "474,690", "438,671"],
+}
+
+# labeled same as crossover points
+graphStraightPts = {
+    "583,676"   : "stopLine0",
+    "397,636"   : "stopLine1",
+    "551,883"   : "stopLine2",
+    "360,818"   : "stopLine3",
+    "172,165"   : "stopLine4",
+    "730,1475"  : "stopLine5",
+    "893,1416"  : "stopLine6",
+    "350,97"    : "stopLine7",
+}
+
 
 def getStopLineCoordinates(name):
     """Gets the coordinates of a stop line based on its name."""
@@ -172,6 +200,42 @@ def getStopLineCoordinates(name):
 
 def getCrossoverPt(name):
     for p, n in graphCrossoverPts.items():
+        if n == name:
+            return p
+
+    return None
+
+def getTurningPt(name, direction):
+    if int(name[-1]) < 4:
+        return getTurningPtSimple(name)
+    else:
+        return getTurningPtFanout(name, direction)
+
+def getTurningPtSimple(name):
+    for p, n in graphTurningPts.items():
+        if n == name:
+            return p
+    return None
+
+# arranged left, straight, right
+def getTurningPtFanout(name, direction):
+    for n, pts in graphTurningPtsComplex.items():
+        if n == name:
+            if direction == 6:
+                return pts[0]
+            elif direction == 4:
+                return pts[1]
+            elif direction == 5:
+                return pts[2]
+            else:
+                print("Error, next turn variable is incorrect!")
+                return pts[1]
+
+    print("Cannot find point named {}".format(name))
+    return None
+
+def getStraightPt(name):
+    for p, n in graphStraightPts.items():
         if n == name:
             return p
 

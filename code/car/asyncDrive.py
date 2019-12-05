@@ -53,6 +53,12 @@ class asyncDrive:
         self.ctl.drive(self.ctl.SPEED_GO)
         self.ctl.drive(self.ctl.SPEED_SLOW)
 
+    def steer_right(self):
+        self.ctl.steer(self.ctl.STEER_RIGHT)
+
+    def steer_left(self):
+        self.ctl.steer(self.ctl.STEER_LEFT)
+
     def right_turn(self):
         if not self.forceDriveDone:
             right_thread = threading.Thread(target=self.async_right_turn())

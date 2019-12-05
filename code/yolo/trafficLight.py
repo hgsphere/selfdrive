@@ -25,6 +25,8 @@ class trafficLightDetector(object):
             self.init_video_writer()
         # flag to tell the car to stop
         self.stop_now_flag = None
+        # averaging the box around the light in case it loses it for one frame
+        self.avgBoxPts = None
 
     def __del__(self):
         if self.TAKE_VIDEO:
@@ -132,7 +134,8 @@ class trafficLightDetector(object):
                 # get only the part of the image with the stoplight in it
                 pt0 = (int(x0), int(y0))
                 pt1 = (int(x1), int(y1))
-                boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
+
+                print("  --  Found traffic light with confidence {} --".format(current_score))
             elif curArea == maxBoxSize:
                 if current_score > maxConfidence:
                     maxConfidence = current_score
@@ -140,7 +143,7 @@ class trafficLightDetector(object):
                     # get only the part of the image with the stoplight in it
                     pt0 = (int(x0), int(y0))
                     pt1 = (int(x1), int(y1))
-                    boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
+                    print("  --  Found traffic light with confidence {} --".format(current_score))
 
                     # see if the traffic light is at the top of the image
                     # if so, then we should probably stop
@@ -149,7 +152,18 @@ class trafficLightDetector(object):
                     else:
                         self.stop_now_flag.value = 0
 
-        if boxSlice is not None:
+        if pt0 is None:
+            self.avgBoxPts = self.avgBoxPts
+        elif self.avgBoxPts is None and pt0 is not None:
+            self.avgBoxPts = np.asanyarray([*pt0, *pt1])
+        elif self.avgBoxPts is not None:
+            self.avgBoxPts = (self.avgBoxPts * 0.7 + np.asanyarray([*pt0, *pt1]) * 0.3).astype("int")
+
+        if self.avgBoxPts is not None:
+            x0, y0, x1, y1 = self.avgBoxPts
+            boxSlice = img[y0:y1, x0:x1]
+            # boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
+
             boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
             colorDetect = self.detectColor(boxSlice)
             # cv2.imshow("boxSlice", boxSlice)
@@ -178,15 +192,15 @@ class trafficLightDetector(object):
         # height = box.shape[0]
 
         kSz = 7
-        lower_green = np.array([0, 100, 0], dtype=np.uint8)
-        upper_green = np.array([100, 255, 100], dtype=np.uint8)
+        lower_green = np.array([0, 120, 0], dtype=np.uint8)
+        upper_green = np.array([100, 255, 90], dtype=np.uint8)
         mask_green = cv2.inRange(box, lower_green, upper_green)
         blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
 
         area = box.shape[0] * box.shape[1]
         px_count = len((np.where(blur_green > 0))[0])
 
-        if px_count > (area / 10):
+        if px_count > (area / 8):
             return "green"
         else:
             return "red"
@@ -243,6 +257,8 @@ class trafficLightDetector(object):
 def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag):
     pipe_output, pipe_input = yolo_pipe
     pipe_input.close()      # only reading
+
+    # TODO: check that environment variable is set correctly
 
     readyFlag.value = 1
 

@@ -152,6 +152,7 @@ def getCurrentCoor(color="Yellow"):
     """Get the current IPS location of the car."""
     # validate request
     if color not in validColors:
+        print("invalid request!")
         return 0, 0
 
     # request data
@@ -187,7 +188,7 @@ def pollCoordinates(lat, lon, debug=False):
         lon.value = _lon
         time.sleep(0.04)
         #afterTime = time.perf_counter()
-        if(debug):
+        if debug:
             print("latitude: {}, longitude: {}".format(_lat, _lon))
             #print("diff time = {}".format(afterTime - beforeTime))
         #latitude = lat
@@ -313,6 +314,20 @@ class IPS(object):
         """
 
         return features.getCrossoverPt(name)
+
+    def getTurningPt(self, name, direction):
+        """Find the point in the path where the car should start turning.
+
+        Input is the name of the stopline currently stopped at.
+        Output is a point on the graph.
+        """
+
+        return features.getTurningPt(name, direction)
+
+    def getStraightPt(self, name):
+        """Similar to above, but for finishing the turn"""
+
+        return features.getStraightPt(name)
 
     def displayPath(self, path):
         """path is a list of node names in the graph.
