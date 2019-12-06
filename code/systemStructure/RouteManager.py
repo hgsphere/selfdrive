@@ -236,10 +236,12 @@ class RouteManager(object):
             self.corner_turn = True
             nextStart = nextTurnPath[5]
         elif len(nextTurnPath) >= 3:
+            self.corner_turn = False
             computedDirection = ips.computeTurnDirection(nextTurnPath[0:5])
             nextTurn = self.States[computedDirection]
             nextStart = nextTurnPath[5]
         else:
+            self.corner_turn = False
             print("Error! next path is too short!!!!!!!!!!!!")
             nextTurn = self.States["Force_Forward"]
             nextStart = self.COORDINATES

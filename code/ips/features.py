@@ -174,14 +174,14 @@ graphTurningPtsComplex = {
     "stopLine4" : ["397,711", "390,716", "400,752"],
     "stopLine5" : ["431,836", "447,821", "486,829"],
     "stopLine6" : ["534,787", "539,780", "539,736"],
-    "stopLine7" : ["496,673", "474,690", "438,671"],
+    "stopLine7" : ["496,673", "474,690", "478,672"],
 }
 
 # labeled same as crossover points
 graphStraightPts = {
     "583,676"   : "stopLine0",
-    "397,636"   : "stopLine1",
-    "551,883"   : "stopLine2",
+    "363,597"   : "stopLine1",
+    "569,901"   : "stopLine2",
     "360,818"   : "stopLine3",
     "172,165"   : "stopLine4",
     "730,1475"  : "stopLine5",

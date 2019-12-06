@@ -170,10 +170,10 @@ class trafficLightDetector(object):
             # cv2.waitKey(0)
             if self.TAKE_VIDEO and pt0 is not None:
                 img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
+                # cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
                 # cv2.imwrite("yoloImage.jpeg", img2)
-                if colorDetect == "green":
-                    cv2.rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
+                # if colorDetect == "green":
+                    # cv2.rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
                     # cv2.addText(img2, "GREEN", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1)
                 self.video_writer.write(img2)
                 # print("YOLO Frame information:")
@@ -194,28 +194,36 @@ class trafficLightDetector(object):
         area = box.shape[0] * box.shape[1]
 
         # hsv stuff:
-        hsv_lower_green = np.array([120, 100, 47.1], dtype=np.uint8)
-        hsv_upper_green = np.array([116, 64.7, 100], dtype=np.uint8)
-        hsv_mask_green = cv2.inRange(box, hsv_lower_green, hsv_upper_green)
-        hsv_blur_green = cv2.GaussianBlur(hsv_mask_green, (kSz, kSz), 0)
-        hsv_px_count = len((np.where(hsv_blur_green > 0))[0])
-        if hsv_px_count > (area / 8):
-            return "green"
-        else:
-            return "red"
-
-        # rgb stuff:
-        # lower_green = np.array([0, 120, 0], dtype=np.uint8)
-        # upper_green = np.array([100, 255, 90], dtype=np.uint8)
-        # mask_green = cv2.inRange(box, lower_green, upper_green)
-        # blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
-        #
-        # px_count = len((np.where(blur_green > 0))[0])
-        #
-        # if px_count > (area / 8):
+        # hsv_lower_green = np.array([120, 100, 47.1], dtype=np.uint8)
+        # hsv_upper_green = np.array([116, 64.7, 100], dtype=np.uint8)
+        # hsv_mask_green = cv2.inRange(box, hsv_lower_green, hsv_upper_green)
+        # hsv_blur_green = cv2.GaussianBlur(hsv_mask_green, (kSz, kSz), 0)
+        # hsv_px_count = len((np.where(hsv_blur_green > 0))[0])
+        # if hsv_px_count > (area / 8):
         #     return "green"
         # else:
         #     return "red"
+
+        # rgb stuff:
+        lower_green = np.array([0, 40, 0], dtype=np.uint8)
+        upper_green = np.array([100, 255, 100], dtype=np.uint8)
+        mask_green = cv2.inRange(box, lower_green, upper_green)
+        blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
+        px_count = len((np.where(blur_green > 0))[0])
+        print("{} out of {} green pixels detected".format(px_count, area))
+
+        lower_red = np.array([60, 0, 0], dtype=np.uint8)
+        upper_red = np.array([255, 100, 100], dtype=np.uint8)
+        mask_red = cv2.inRange(box, lower_red, upper_red)
+        blur_red = cv2.GaussianBlur(mask_red, (kSz, kSz), 0)
+        px_count_red = len((np.where(blur_red > 0))[0])
+        print("{} out of {} red pixels detected".format(px_count_red, area))
+        if px_count_red > (area / 10):
+            return "red"
+        elif px_count > (area / 12):
+            return "green"
+        else:
+            return "red"
 
         # looking for the brightest light
         # gray = cv2.cvtColor(box, cv2.COLOR_BGR2GRAY)
