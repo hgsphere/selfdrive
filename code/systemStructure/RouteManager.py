@@ -546,7 +546,7 @@ class RouteManager(object):
         return heading_offset
 
     def RouteTick(self):
-        #print(self.state)
+        print('State Num: {}'.format(self.state))
         self.RouteActions()
         # route state transition
         if self.state == self.States["Init"]:

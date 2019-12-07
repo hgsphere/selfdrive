@@ -18,7 +18,7 @@ class trafficLightDetector(object):
         self.device = mx.gpu()
         self.net.collect_params().reset_ctx(self.device)
         # detected bounding boxes
-        self.confidence = 0.55
+        self.confidence = .40 #0.55
         self.video_writer = None
         self.TAKE_VIDEO = True
         if self.TAKE_VIDEO:
@@ -170,7 +170,7 @@ class trafficLightDetector(object):
             # cv2.waitKey(0)
             if self.TAKE_VIDEO and pt0 is not None:
                 img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                # cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
+                cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
                 # cv2.imwrite("yoloImage.jpeg", img2)
                 # if colorDetect == "green":
                     # cv2.rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
@@ -205,22 +205,22 @@ class trafficLightDetector(object):
         #     return "red"
 
         # rgb stuff:
-        lower_green = np.array([0, 40, 0], dtype=np.uint8)
-        upper_green = np.array([100, 255, 100], dtype=np.uint8)
+        lower_green = np.array([0, 0, 0], dtype=np.uint8)
+        upper_green = np.array([100, 255, 5], dtype=np.uint8)
         mask_green = cv2.inRange(box, lower_green, upper_green)
         blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
         px_count = len((np.where(blur_green > 0))[0])
         print("{} out of {} green pixels detected".format(px_count, area))
 
-        lower_red = np.array([60, 0, 0], dtype=np.uint8)
-        upper_red = np.array([255, 100, 100], dtype=np.uint8)
+        lower_red = np.array([0, 0, 20], dtype=np.uint8)
+        upper_red = np.array([10, 0, 255], dtype=np.uint8)
         mask_red = cv2.inRange(box, lower_red, upper_red)
         blur_red = cv2.GaussianBlur(mask_red, (kSz, kSz), 0)
         px_count_red = len((np.where(blur_red > 0))[0])
         print("{} out of {} red pixels detected".format(px_count_red, area))
-        if px_count_red > (area / 10):
+        if px_count_red > (area / 2):
             return "red"
-        elif px_count > (area / 12):
+        elif px_count > (area / 10):
             return "green"
         else:
             return "red"

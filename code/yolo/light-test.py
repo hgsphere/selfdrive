@@ -46,16 +46,16 @@ def detectColor(box):
     area = box.shape[0] * box.shape[1]
     # hsv = cv2.cvtColor(box, cv2.COLOR_BGR2HSV)
     # cv2.imshow("hsv", box)
-    lower_green = np.array([0, 40, 0], dtype=np.uint8)
-    upper_green = np.array([100, 255, 100], dtype=np.uint8)
+    lower_green = np.array([0, 0, 0], dtype=np.uint8)
+    upper_green = np.array([100, 255, 5], dtype=np.uint8)
     mask_green = cv2.inRange(box, lower_green, upper_green)
     blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
     px_count = len((np.where(blur_green > 0))[0])
     print("{} out of {} green pixels detected".format(px_count, area))
 
 
-    lower_red = np.array([60, 0, 0], dtype=np.uint8)
-    upper_red = np.array([255, 100, 100], dtype=np.uint8)
+    lower_red = np.array([0, 0, 20], dtype=np.uint8)
+    upper_red = np.array([10, 0, 255], dtype=np.uint8)
     mask_red = cv2.inRange(box, lower_red, upper_red)
     blur_red = cv2.GaussianBlur(mask_red, (kSz, kSz), 0)
     px_count_red = len((np.where(blur_red > 0))[0])
