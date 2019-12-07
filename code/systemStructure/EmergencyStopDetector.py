@@ -8,8 +8,8 @@ from findLines import displayImage
 
 class EmergencyStopDetector(object):
     def __init__(self):
-        self.pixel_threshold = 500
-        self.count_threshold = 450
+        self.pixel_threshold = 600#500
+        self.count_threshold = 425#450
 
     def detectStop(self, frame):
         """Detects if we should stop the car
@@ -32,11 +32,11 @@ class EmergencyStopDetector(object):
         # height = img.shape[0]
         #print(img.shape)
 
-        x0 = 150
-        x1 = 340
+        x0 = 160#150
+        x1 = 330#340
 
-        y0 = 90
-        y1 = 210
+        y0 = 120#90
+        y1 = 190#210
 
         # roi = np.asanyarray(img[y0:y1, x0:x1], dtype="uint16")
         # rowNumbers = np.linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
