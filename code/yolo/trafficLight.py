@@ -18,7 +18,7 @@ class trafficLightDetector(object):
         self.device = mx.gpu()
         self.net.collect_params().reset_ctx(self.device)
         # detected bounding boxes
-        self.confidence = .40 #0.55
+        self.confidence = .45 #0.55
         self.video_writer = None
         self.TAKE_VIDEO = True
         if self.TAKE_VIDEO:
@@ -274,7 +274,7 @@ class trafficLightDetector(object):
         #     return "red"
 
 
-def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag):
+def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag, resetFlag):
     pipe_output, pipe_input = yolo_pipe
     pipe_input.close()      # only reading
 
@@ -293,6 +293,11 @@ def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag):
         nextFrame = pipe_output.recv()
         # set the ready flag high
         readyFlag.value = 1
+
+        # reset the box around the traffic light
+        if resetFlag.value:
+            tld.avgBoxPts = None
+            resetFlag.value = 0
 
         # do the detection
         color = tld.detectTrafficLight(nextFrame)

@@ -62,8 +62,8 @@ class RouteManager(object):
         self.threshDist = self.ips.avg_dst * 7
 
         # index in current_path for where start turning the wheel, and go back to lane following
-        self.turn_idx = 0
-        self.crossover_idx = 0
+        self.turn_pt = None
+        self.crossover_pt = None
 
         # stop at each stop line for about 1 second
         self.stopCounter = 0
@@ -73,6 +73,7 @@ class RouteManager(object):
         self.lon = None
         self.greenFlag = None
         self.stop_now_flag = None
+        self.reset_yolo_flag = None
 
         # history variables
         zz = np.zeros((1,30)) 
@@ -88,7 +89,7 @@ class RouteManager(object):
         self.prev_GPS_angle = 0
 
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
-                                  lat, lon, yolo_green_flag, stop_now_flag):
+                                  lat, lon, yolo_green_flag, stop_now_flag, reset_yolo_flag):
         self.laneDetectQ = laneDetect_routeManagerQ
         self.stopDetectQ = stopDetect_routeManagerQ
         self.emergencyStopQ = emergencyStop_routeManagerQ
@@ -97,6 +98,7 @@ class RouteManager(object):
         self.lon = lon
         self.greenFlag = yolo_green_flag
         self.stop_now_flag = stop_now_flag
+        self.reset_yolo_flag = reset_yolo_flag
 
         while True:
             self.angle = self.laneDetectQ.get()
@@ -180,7 +182,7 @@ class RouteManager(object):
                 self.action_Taken = True
 
             # detect if we've hit the turning point
-            if self.inRangeOfGenericPt(self.current_path[self.turn_idx]):
+            if self.inRangeOfGenericPt(self.turn_pt):
                 self.asyncDrive.steer_right()
 
         elif self.state == self.States["Force_Left_Turn"]:
@@ -196,7 +198,7 @@ class RouteManager(object):
                 print('Starting Left Turn')
                 self.action_Taken = True
 
-            if self.inRangeOfGenericPt(self.current_path[self.turn_idx]):
+            if self.inRangeOfGenericPt(self.turn_pt):
                 self.asyncDrive.steer_left()
 
         elif self.state == self.States["Wait_for_green"]:
@@ -262,19 +264,9 @@ class RouteManager(object):
         self.current_path = self.ips.findPath(*self.COORDINATES, *self.current_path[-1])
 
         # find the index in the full path for when to start turning
-        try:
-            print("Finding the index of pt {}".format(turnStartPt))
-            self.turn_idx = self.current_path.index(decodePtName(turnStartPt))
-        except ValueError:
-            self.turn_idx = 3
-            print("Error computing the turning point, defaulting to {}!\n".format(self.turn_idx))
-            print(self.current_path[:9])
+        self.turn_pt = decodePtName(turnStartPt)
         # find the index in the full path for when to stop turning
-        try:
-            self.crossover_idx = self.current_path.index(decodePtName(straightPt))
-        except ValueError:
-            self.crossover_idx = 15
-            print("Error computing the crossover point, defaulting to {}!\n".format(self.crossover_idx))
+        self.crossover_pt = decodePtName(straightPt)
 
         # return the next turn
         ## Always do GPS turns
@@ -285,6 +277,8 @@ class RouteManager(object):
         else:
             self.asyncDrive.ctl.corner_turn = False
             self.nextTurn = nextTurn
+            # reset box boundaries at the traffic light
+            self.reset_yolo_flag.value = 1
             return self.States["Wait_for_green"]
 
     # print(self.current_path)
@@ -379,7 +373,7 @@ class RouteManager(object):
     def TerminateGPS(self):
         """Are we in range of the next stop line? This is ~ 12th element in the current path list."""
         w, h = self.COORDINATES
-        targetPt = self.current_path[self.crossover_idx]
+        targetPt = self.crossover_pt
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
         
         threshDist = self.ips.avg_dst * 3
@@ -569,7 +563,7 @@ class RouteManager(object):
             if self.stopCounter == 0:
                 self.asyncDrive.stop()
             self.stopCounter += 1
-            if self.stopCounter == 60:
+            if self.stopCounter == 30:
                 self.stopCounter = 0
                 self.state = self.routePlan()
 
@@ -664,7 +658,7 @@ class RouteManager(object):
                 self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
-            elif self.inRangeOfGenericPt(self.current_path[self.crossover_idx]):
+            elif self.inRangeOfGenericPt(self.crossover_pt):
                 self.action_Taken = False
                 self.state = self.States["Lane_Follow"]
 
@@ -683,7 +677,7 @@ class RouteManager(object):
                 self.preEmergencyStopState = self.state
                 self.state = self.States["Stop"]
 
-            elif self.inRangeOfGenericPt(self.current_path[self.crossover_idx]):
+            elif self.inRangeOfGenericPt(self.crossover_pt):
                 self.action_Taken = False
                 self.state = self.States["Lane_Follow"]
 
