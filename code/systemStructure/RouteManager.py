@@ -62,8 +62,8 @@ class RouteManager(object):
         self.threshDist = self.ips.avg_dst * 7
 
         # index in current_path for where start turning the wheel, and go back to lane following
-        self.turn_pt = None
-        self.crossover_pt = None
+        self.turn_pt = "0,0"
+        self.crossover_pt = "0,0"
 
         # stop at each stop line for about 1 second
         self.stopCounter = 0
