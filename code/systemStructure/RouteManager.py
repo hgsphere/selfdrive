@@ -146,7 +146,11 @@ class RouteManager(object):
             G_angle = self.calc_GPS_angle()
             print(G_angle)
             # TODO: mix GPS into this
-            self.asyncDrive.LaneFollow(self.angle*1*0.85 + 0.15*3*G_angle)
+            if abs(G_angle) > 42:
+                self.asyncDrive.LaneFollow(self.angle)
+            else:
+                G_angle = self.asyncDrive.pid.thres(G_angle, 42)
+                self.asyncDrive.LaneFollow(self.angle*1*0.85 + 0.15*3*G_angle)
             # self.asyncDrive.LaneFollow(self.angle * 1)
 
         elif self.state == self.States["GPS_Follow"]:
@@ -158,6 +162,8 @@ class RouteManager(object):
                 print('Starting Lane Following')
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
+            if abs(G_angle) > 15:
+                G_angle = 0
             G_angle = self.asyncDrive.pid.thres(G_angle, 15)
             print(G_angle)
             self.asyncDrive.LaneFollow(self.angle*0 + 2.0*G_angle)
