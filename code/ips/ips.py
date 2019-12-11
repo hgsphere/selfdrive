@@ -1,25 +1,37 @@
 #!/usr/bin/python3
-import json
-import os
-import sys
+from json import (load as json_load)
+from os import (path as os_path,
+                getcwd as os_getcwd)
+from sys import (path as sys_path)
 from requests import get as rget
-import cv2 as cv
-import numpy as np
+from cv2 import (INTER_AREA as cv_INTER_AREA,
+                EVENT_LBUTTONUP as cv_EVENT_LBUTTONUP,
+                imread as cv_imread,
+                imshow as cv_imshow,
+                namedWindow as cv_namedWindow,
+                setMouseCallback as cv_setMouseCallback,
+                waitKey as cv_waitKey,
+                resize as cv_resize)
+from numpy import ( pi as np_pi,
+                    arccos as np_arccos,
+                    arctan as np_arctan,
+                    copy as np_copy,
+                    mean as np_mean)
 from math import sqrt
 from multiprocessing import Value
-import time
+from time import (  sleep as time_sleep,
+                    perf_counter as time_perf_counter)
 from networkx import (DiGraph as nx_DiGraph,
                       from_dict_of_dicts as nx_from_dict_of_dicts,
                       shortest_path as nx_shortest_path)
 
-sys.path.append(os.getcwd())
+sys_path.append(os_getcwd())
 from digraph import (drawLine, drawPt, getPtName, decodePtName)
 import features
-import datetime
 
 
 # Import global to reference files by full path
-sys.path.append(os.path.abspath("../systemStructure"))
+sys_path.append(os_path.abspath("../systemStructure"))
 import globals
 
 ##############################################################################
@@ -42,12 +54,12 @@ def displayRouteImg(name, img, wait=True, targetHeight=740):
     targetWidth = int(width * r)
 
     sz = (targetWidth, targetHeight)
-    smaller = cv.resize(img, sz, interpolation=cv.INTER_AREA)
+    smaller = cv_resize(img, sz, interpolation=cv_INTER_AREA)
 
-    cv.imshow(name, smaller)
+    cv_imshow(name, smaller)
     if wait:
         while True:
-            key = cv.waitKey(0) & 0xFF
+            key = cv_waitKey(0) & 0xFF
             if key == ord('q'):
                 break
     else:
@@ -82,7 +94,7 @@ def findAbsoluteHeading(pt0, pt1):
             deltaX = abs(xInt0 - xInt1)
 
             # heading in degrees
-            heading = (180/np.pi) * np.arctan(deltaX / img_height)
+            heading = (180/np_pi) * np_arctan(deltaX / img_height)
     
     if xInt0 < xInt1:
         heading = -heading
@@ -115,7 +127,7 @@ def computeTurnDirection(nodes):
 
     # print(dist_plan,dist_close,dist_future)
     # calculate the angle between the car and perdicted GPS path
-    GPS_angle = (180 / np.pi) * np.arccos(
+    GPS_angle = (180 / np_pi) * np_arccos(
         (side_a ** 2 + side_b ** 2 - side_c ** 2) / (2 * abs(side_a * side_b)))
 
     # if this angle is less than tolerance, then we're going straight
@@ -182,12 +194,12 @@ def pollCoordinates(lat, lon, debug=False):
     #global latitude, longitude
 
     while True:
-        #beforeTime = time.perf_counter()
+        #beforeTime = time_perf_counter()
         _lat, _lon = getCurrentCoor()
         lat.value = _lat
         lon.value = _lon
-        time.sleep(0.04)
-        #afterTime = time.perf_counter()
+        time_sleep(0.04)
+        #afterTime = time_perf_counter()
         if debug:
             print("latitude: {}, longitude: {}".format(_lat, _lon))
             #print("diff time = {}".format(afterTime - beforeTime))
@@ -203,12 +215,12 @@ class IPS(object):
         # we're using a directed graph
         self.graph = nx_DiGraph()
         # load in the data from the graph file
-        with open(os.path.join(globals.code_base_dir,"ips" + os.path.sep + "graph.json"), 'r') as jf:
-            self.graphDict = json.load(jf)
+        with open(os_path.join(globals.code_base_dir,"ips" + os_path.sep + "graph.json"), 'r') as jf:
+            self.graphDict = json_load(jf)
             self.graph = nx_from_dict_of_dicts(self.graphDict, create_using=self.graph)
         # also keep the image around
-        image_path = os.path.join(globals.code_base_dir,"ips/Global.jpg")
-        self.image = cv.imread(image_path)
+        image_path = os_path.join(globals.code_base_dir,"ips/Global.jpg")
+        self.image = cv_imread(image_path)
         # determine the average distance between each node
         distances = []
         for node, edges in self.graphDict.items():
@@ -221,7 +233,7 @@ class IPS(object):
             dist = sqrt(pow(xn - x, 2) + pow(yn - y, 2))
             if dist > 0:
                 distances.append(dist)
-        self.avg_dst = int(np.mean(distances))
+        self.avg_dst = int(np_mean(distances))
         print("Average distance between nodes is: {}".format(self.avg_dst))
 
     def findNextStopLine(self, x, y):
@@ -333,7 +345,7 @@ class IPS(object):
         """path is a list of node names in the graph.
         This is great because we have encoded the coordinates in the node names.
         """
-        img = np.copy(self.image)
+        img = np_copy(self.image)
         for i in range(len(path)-1):
             drawLine(img, path[i], path[i+1])
 
@@ -342,7 +354,7 @@ class IPS(object):
 
     def displayDirectedGraph(self):
         """Display the entire graph overlaid on the image."""
-        img = np.copy(self.image)
+        img = np_copy(self.image)
         for node, edges in self.graphDict.items():
             x, y = decodePtName(node)
             drawPt(img, x, y)
@@ -355,7 +367,7 @@ class IPS(object):
 def pointClick(event, x, y, flags, params):
     """Callback function for showcasing the feature detection."""
 
-    if event == cv.EVENT_LBUTTONUP:
+    if event == cv_EVENT_LBUTTONUP:
         ips = params[0]
 
         path, name = ips.findNextStopLine(x, y)
@@ -369,7 +381,7 @@ def pointClick(event, x, y, flags, params):
         # nearest graph point
         drawLine(img, (x, y), path[0], color=RED)
 
-        cv.imshow("features", img)
+        cv_imshow("features", img)
 
 
 def testFeatureFinding(ips):
@@ -378,12 +390,12 @@ def testFeatureFinding(ips):
     Press 'q' to quit.
     """
 
-    cv.namedWindow("features")
-    cv.setMouseCallback("features", pointClick, param=(ips,))
-    cv.imshow("features", ips.image)
+    cv_namedWindow("features")
+    cv_setMouseCallback("features", pointClick, param=(ips,))
+    cv_imshow("features", ips.image)
 
     while True:
-        key = cv.waitKey(0) & 0xFF
+        key = cv_waitKey(0) & 0xFF
 
         if key == ord('q'):
             break
@@ -394,7 +406,7 @@ def testPathFinding(ips):
     These can be changed to test the correctness of paths.
     """
 
-    cv.namedWindow("path")
+    cv_namedWindow("path")
     p0 = 100, 100
     p1 = 770, 1064
     RED = (0, 0, 255)
@@ -421,7 +433,7 @@ def testTurnDecision():
 
 def main():
     ips = IPS()
-    # cv.imwrite("graphMap.jpeg", ips.displayDirectedGraph())
+    # cv_imwrite("graphMap.jpeg", ips.displayDirectedGraph())
     # displayRouteImg("path", ips.displayDirectedGraph())
     lat = Value('d', 0.0)
     lon = Value('d', 0.0)
@@ -430,7 +442,7 @@ def main():
     # testFeatureFinding(ips)
     # testTurnDecision()
 
-    # cv.destroyAllWindows()
+    # cv_destroyAllWindows()
 
 
 if __name__ == '__main__':

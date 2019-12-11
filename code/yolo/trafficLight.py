@@ -1,13 +1,27 @@
 #!/usr/bin/python3
 
-import mxnet as mx
-from gluoncv import model_zoo, utils
+from os import (path as os_path,
+                getcwd as os_getcwd,
+                listdir as os_listdir)
 from time import perf_counter
 from PIL import Image
-import numpy as np
-import cv2
-import gc
-import os
+from mxnet import (gpu as mx_gpu,
+                   nd as mx_nd)
+from gluoncv import model_zoo
+from numpy import ( uint8 as np_uint8,
+                    array as np_array,
+                    asanyarray as np_asanyarray,
+                    where as np_where)
+from cv2 import (COLOR_BGR2RGB as cv_COLOR_BGR2RGB,
+                COLOR_RGB2BGR as cv_COLOR_RGB2BGR,
+                imread as cv_imread,
+                imshow as cv_imshow,
+                VideoWriter_fourcc as cv_VideoWriter_fourcc,
+                VideoWriter as cv_VideoWriter,
+                rectangle as cv_rectangle,
+                cvtColor as cv_cvtColor,
+                inRange as cv_inRange,
+                GaussianBlur as cv_GaussianBlur)
 
 
 class trafficLightDetector(object):
@@ -15,7 +29,7 @@ class trafficLightDetector(object):
         # Implement YOLOv3MXNet
         self.net = model_zoo.get_model('yolo3_mobilenet1.0_coco', pretrained=True)
         # Set device to GPU
-        self.device = mx.gpu()
+        self.device = mx_gpu()
         self.net.collect_params().reset_ctx(self.device)
         # detected bounding boxes
         self.confidence = .45 #0.55
@@ -37,26 +51,26 @@ class trafficLightDetector(object):
         shape_rgb = (282, 282)
         # self.y_offset = (416 - 235) // 2
         frame_rate_rgb = 3
-        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-        outpath_rgb = os.path.join(os.getcwd(), "yoloVideo.avi")
-        # outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")
-        self.video_writer = cv2.VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,
+        fourcc = cv_VideoWriter_fourcc(*"MJPG")
+        outpath_rgb = os_path.join(os_getcwd(), "yoloVideo.avi")
+        # outpath_dep = os_path.join(os_getcwd(), "output-depth-low.avi")
+        self.video_writer = cv_VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,
                                        (shape_rgb[0], shape_rgb[1]), True)
 
     """Transforms for YOLO series."""
     def transform_test(self, imgs, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        if isinstance(imgs, mx.nd.NDArray):
+        if isinstance(imgs, mx_nd.NDArray):
             imgs = [imgs]
         for im in imgs:
-            assert isinstance(im, mx.nd.NDArray), "Expect NDArray, got {}".format(type(im))
+            assert isinstance(im, mx_nd.NDArray), "Expect NDArray, got {}".format(type(im))
 
         tensors = []
         origs = []
         for img in imgs:
             orig_img = img.asnumpy().astype('uint8')
-            img = mx.nd.image.to_tensor(img)
+            img = mx_nd.image.to_tensor(img)
 
-            img = mx.nd.image.normalize(img, mean=mean, std=std)
+            img = mx_nd.image.normalize(img, mean=mean, std=std)
 
             tensors.append(img.expand_dims(0))
             origs.append(orig_img)
@@ -82,13 +96,13 @@ class trafficLightDetector(object):
         image = image.resize((nw, nh), Image.BICUBIC)
         new_image = Image.new('RGB', (size, size), (128, 128, 128))
         new_image.paste(image, ((size-nw)//2, (size-nh)//2))
-        return mx.nd.array(np.array(new_image))
+        return mx_nd.array(np_array(new_image))
 
     def runYolo(self, frame):
         # some conversions
         height = frame.shape[0]
         width = frame.shape[1]
-        frameRGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frameRGB = cv_cvtColor(frame, cv_COLOR_BGR2RGB)
 
         # from gluoncv import data
         yolo_image = Image.fromarray(frameRGB, 'RGB')
@@ -155,26 +169,25 @@ class trafficLightDetector(object):
         if pt0 is None:
             self.avgBoxPts = self.avgBoxPts
         elif self.avgBoxPts is None and pt0 is not None:
-            self.avgBoxPts = np.asanyarray([*pt0, *pt1])
+            self.avgBoxPts = np_asanyarray([*pt0, *pt1])
         elif self.avgBoxPts is not None:
-            self.avgBoxPts = (self.avgBoxPts * 0.7 + np.asanyarray([*pt0, *pt1]) * 0.3).astype("int")
+            self.avgBoxPts = (self.avgBoxPts * 0.7 + np_asanyarray([*pt0, *pt1]) * 0.3).astype("int")
 
         if self.avgBoxPts is not None:
             x0, y0, x1, y1 = self.avgBoxPts
             boxSlice = img[y0:y1, x0:x1]
             # boxSlice = img[pt0[1]:pt1[1], pt0[0]:pt1[0]]
 
-            boxSlice = cv2.cvtColor(boxSlice, cv2.COLOR_BGR2RGB)
+            boxSlice = cv_cvtColor(boxSlice, cv_COLOR_BGR2RGB)
             colorDetect = self.detectColor(boxSlice)
-            # cv2.imshow("boxSlice", boxSlice)
-            # cv2.waitKey(0)
+            # cv_imshow("boxSlice", boxSlice)
+            # cv_waitKey(0)
             if self.TAKE_VIDEO and pt0 is not None:
-                img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                cv2.rectangle(img2, pt0, pt1, (0, 255, 0), 2)
-                # cv2.imwrite("yoloImage.jpeg", img2)
+                img2 = cv_cvtColor(img, cv_COLOR_RGB2BGR)
+                cv_rectangle(img2, pt0, pt1, (0, 255, 0), 2)
+                # cv_imwrite("yoloImage.jpeg", img2)
                 # if colorDetect == "green":
-                    # cv2.rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
-                    # cv2.addText(img2, "GREEN", (40, 300), cv2.FONT_HERSHEY_SIMPLEX, 1)
+                    # cv_rectangle(img2, (40, 300), (80, 340), (0, 255, 0), -1)
                 self.video_writer.write(img2)
                 # print("YOLO Frame information:")
                 # print(type(img))
@@ -182,7 +195,7 @@ class trafficLightDetector(object):
         else:
             colorDetect = "red"
             if self.TAKE_VIDEO:
-                img2 = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                img2 = cv_cvtColor(img, cv_COLOR_RGB2BGR)
                 self.video_writer.write(img2)
 
         # gc.collect()
@@ -194,29 +207,29 @@ class trafficLightDetector(object):
         area = box.shape[0] * box.shape[1]
 
         # hsv stuff:
-        # hsv_lower_green = np.array([120, 100, 47.1], dtype=np.uint8)
-        # hsv_upper_green = np.array([116, 64.7, 100], dtype=np.uint8)
-        # hsv_mask_green = cv2.inRange(box, hsv_lower_green, hsv_upper_green)
-        # hsv_blur_green = cv2.GaussianBlur(hsv_mask_green, (kSz, kSz), 0)
-        # hsv_px_count = len((np.where(hsv_blur_green > 0))[0])
+        # hsv_lower_green = np_array([120, 100, 47.1], dtype=np_uint8)
+        # hsv_upper_green = np_array([116, 64.7, 100], dtype=np_uint8)
+        # hsv_mask_green = cv_inRange(box, hsv_lower_green, hsv_upper_green)
+        # hsv_blur_green = cv_GaussianBlur(hsv_mask_green, (kSz, kSz), 0)
+        # hsv_px_count = len((np_where(hsv_blur_green > 0))[0])
         # if hsv_px_count > (area / 8):
         #     return "green"
         # else:
         #     return "red"
 
         # rgb stuff:
-        lower_green = np.array([0, 0, 0], dtype=np.uint8)
-        upper_green = np.array([100, 255, 5], dtype=np.uint8)
-        mask_green = cv2.inRange(box, lower_green, upper_green)
-        blur_green = cv2.GaussianBlur(mask_green, (kSz, kSz), 0)
-        px_count = len((np.where(blur_green > 0))[0])
+        lower_green = np_array([0, 0, 0], dtype=np_uint8)
+        upper_green = np_array([100, 255, 5], dtype=np_uint8)
+        mask_green = cv_inRange(box, lower_green, upper_green)
+        blur_green = cv_GaussianBlur(mask_green, (kSz, kSz), 0)
+        px_count = len((np_where(blur_green > 0))[0])
         print("{} out of {} green pixels detected".format(px_count, area))
 
-        lower_red = np.array([0, 0, 20], dtype=np.uint8)
-        upper_red = np.array([10, 0, 255], dtype=np.uint8)
-        mask_red = cv2.inRange(box, lower_red, upper_red)
-        blur_red = cv2.GaussianBlur(mask_red, (kSz, kSz), 0)
-        px_count_red = len((np.where(blur_red > 0))[0])
+        lower_red = np_array([0, 0, 20], dtype=np_uint8)
+        upper_red = np_array([10, 0, 255], dtype=np_uint8)
+        mask_red = cv_inRange(box, lower_red, upper_red)
+        blur_red = cv_GaussianBlur(mask_red, (kSz, kSz), 0)
+        px_count_red = len((np_where(blur_red > 0))[0])
         print("{} out of {} red pixels detected".format(px_count_red, area))
         if px_count_red > (area / 2):
             return "red"
@@ -262,7 +275,7 @@ class trafficLightDetector(object):
     def detectTrafficLight(self, frame):
         # can read frames from paths
         if isinstance(frame, str):
-            frame = cv2.imread(frame)
+            frame = cv_imread(frame)
 
         # get the bounding box
         return self.runYolo(frame)
@@ -316,13 +329,13 @@ def mainTest():
     # test if the color detector works
     tld = trafficLightDetector()
 
-    imgDir = os.path.abspath("../../testimages/trafficLights/slices")
-    imgList = os.listdir(imgDir)
-    imgs = sorted([os.path.join(imgDir, x) for x in imgList])
+    imgDir = os_path.abspath("../../testimages/trafficLights/slices")
+    imgList = os_listdir(imgDir)
+    imgs = sorted([os_path.join(imgDir, x) for x in imgList])
 
     for i in imgs:
         print(i)
-        testImage = cv2.imread(i)
+        testImage = cv_imread(i)
         color = tld.detectColor(testImage)
 
         print(color)

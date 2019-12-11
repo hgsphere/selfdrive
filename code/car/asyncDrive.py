@@ -1,15 +1,22 @@
 #!/usr/bin/python3
 
-import os
-import sys
-import collections
-import threading
-import numpy as np
+from os import (path as os_path)
+from sys import (path as sys_path)
+from collections import deque
+from threading import (Thread as threading_Thread)
+from numpy import ( floor as np_floor,
+                    ceil as np_ceil,
+                    mean as np_mean,
+                    zeros as np_zeros,
+                    std as np_std,
+                    cov as np_cov,
+                    diff as np_diff,
+                    )
 from pykalman import KalmanFilter
 
-sys.path.append(os.path.abspath("../car/"))
+sys_path.append(os_path.abspath("../car/"))
 from driving import control
-sys.path.append(os.path.abspath("."))
+sys_path.append(os_path.abspath("."))
 from pid import PID
 
 FPS = 60 # frames per second
@@ -19,8 +26,8 @@ class asyncDrive:
 
     def __init__(self):
         self.ctl = control()
-        zz = np.zeros((1,20))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        zz = np_zeros((1,20))
+        self.angles = deque(zz.tolist()[0],maxlen=20)
         # print(self.angles)
         self.forceDriveDone = False
         self.last_angle = 0
@@ -44,8 +51,8 @@ class asyncDrive:
         self.pid.kd = kd
 
     def clear(self):
-        zz = np.zeros((1,20))
-        self.angles = collections.deque(zz.tolist()[0],maxlen=20)
+        zz = np_zeros((1,20))
+        self.angles = deque(zz.tolist()[0],maxlen=20)
         self.pid.clear()
 
     def start_LaneFollowing(self,):
@@ -61,17 +68,17 @@ class asyncDrive:
 
     def right_turn(self):
         if not self.forceDriveDone:
-            right_thread = threading.Thread(target=self.async_right_turn())
+            right_thread = threading_Thread(target=self.async_right_turn())
             right_thread.start()
 
     def left_turn(self):
         if not self.forceDriveDone:
-            left_thread = threading.Thread(target=self.async_left_turn())
+            left_thread = threading_Thread(target=self.async_left_turn())
             left_thread.start()
 
     def forward(self):
         if not self.forceDriveDone:
-            forward_thread = threading.Thread(target=self.async_forward())
+            forward_thread = threading_Thread(target=self.async_forward())
             forward_thread.start()
 
     def async_right_turn(self):
@@ -111,24 +118,24 @@ class asyncDrive:
 
     def filter_angles(self):
         # returns filtered angle decision
-        # data = np.array(self.angles)
+        # data = np_array(self.angles)
         data = [x if (x <= 30) else 30 for x in list(self.angles)]
         data = [x if (x >= -30) else -30 for x in list(data)]
         #data = self.angles
-        #kf = KalmanFilter(initial_state_mean=np.mean(list(data)),initial_state_covariance=np.cov(list(data)),n_dim_obs=1)
-        kf = KalmanFilter(initial_state_mean=np.mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)#0.61,n_dim_obs=1)
+        #kf = KalmanFilter(initial_state_mean=np_mean(list(data)),initial_state_covariance=np_cov(list(data)),n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=np_mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)#0.61,n_dim_obs=1)
         means, covs = kf.filter(list(data))
         #estimate = means[14][0]
-        self.m = means[0][0] #np.mean([means[i][0] for i in range(9,19)])
-        self.c = covs[0][0] #np.mean([covs[i][0] for i in range(9,19)])
-        #diff = np.mean(np.diff(means,axis=0))*20
+        self.m = means[0][0] #np_mean([means[i][0] for i in range(9,19)])
+        self.c = covs[0][0] #np_mean([covs[i][0] for i in range(9,19)])
+        #diff = np_mean(np_diff(means,axis=0))*20
         # print(list(data))
         # print(means)
         #print(covs)
-        # print(np.diff(means,axis=0))
+        # print(np_diff(means,axis=0))
         # print(diff)
         # print(list(data)[4:7])
-        # print(np.cov(data))
+        # print(np_cov(data))
         #frame_delay = self.estimate_frame_offest()
         #print(frame_delay) 
         #if frame_delay == 0:
@@ -141,11 +148,11 @@ class asyncDrive:
         #if df < 20:
         #    df = 20
         df = 18
-        avg = np.mean([means[i][0] for i in range(df-1,df+1)])
+        avg = np_mean([means[i][0] for i in range(df-1,df+1)])
         # print("here")
         # print(avg)
         # print("here_after")
-        #mm = round(np.mean(list(data)[4:7]),2)
+        #mm = round(np_mean(list(data)[4:7]),2)
         # print(mm)
         # estimate = estimate if (estimate <=30) else 30
         # estimate = estimate if (estimate >= -30) else -30
@@ -153,9 +160,9 @@ class asyncDrive:
 
     def bin_angle(self,angle):
         if angle >= 0:
-            return np.floor(angle/2)*2
+            return np_floor(angle/2)*2
         else:
-            return np.ceil(angle/2)*2
+            return np_ceil(angle/2)*2
 
     def LaneFollow(self, angle):
         # updates angle queue changes steering

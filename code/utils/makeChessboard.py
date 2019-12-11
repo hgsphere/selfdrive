@@ -1,6 +1,10 @@
-import cv2 as cv
-import numpy as np
-import pprint
+from cv2 import (FILLED as cv_FILLED,
+                imshow as cv_imshow,
+                waitKey as cv_waitKey,
+                rectangle as cv_rectangle)
+from numpy import ( uint8 as np_uint8,
+                    zeros as np_zeros)
+from pprint import PrettyPrinter
 
 # help from
 # https://answers.opencv.org/question/27917/how-to-create-a-chess-board/
@@ -24,7 +28,7 @@ def getChessboardPoints(shape=(640, 480), cols=8, rows=9, show=False):
 
     pts = []
 
-    chessboard = np.zeros([IMG_H, IMG_W], dtype=np.uint8)
+    chessboard = np_zeros([IMG_H, IMG_W], dtype=np_uint8)
     color = 0
 
     for j in range(0, IMG_H, stepH):
@@ -33,14 +37,14 @@ def getChessboardPoints(shape=(640, 480), cols=8, rows=9, show=False):
 
         for i in range(0, IMG_W, stepW):
             rowPts.append([i, j])
-            cv.rectangle(chessboard, (i, j), (i+stepW, j+stepH), color, thickness=cv.FILLED)
+            cv_rectangle(chessboard, (i, j), (i+stepW, j+stepH), color, thickness=cv_FILLED)
             color = blackWhiteSwap(color)
         rowPts.append([i, j+stepW])
         pts.append(rowPts)
 
     if show:
-        cv.imshow("chessboard", chessboard)
-        cv.waitKey(0)
+        cv_imshow("chessboard", chessboard)
+        cv_waitKey(0)
 
     return pts
 
@@ -48,7 +52,7 @@ def getChessboardPoints(shape=(640, 480), cols=8, rows=9, show=False):
 def main():
     pts = getChessboardPoints(show=True)
 
-    pp = pprint.PrettyPrinter(indent=2)
+    pp = PrettyPrinter(indent=2)
     pp.pprint(pts)
     print(len(pts))
     print(len(pts[0]))

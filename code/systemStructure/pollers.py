@@ -1,8 +1,16 @@
-import pyrealsense2 as rs
-import numpy as np
-import cv2 as cv
-import time
-import sys
+from pyrealsense2 import (  log_to_console as rs_log_to_console,
+                            log_severity as rs_log_severity,
+                            pipeline as rs_pipeline,
+                            config as rs_config,
+                            stream as rs_stream,
+                            format as rs_format)
+from numpy import ( float32 as np_float32,
+                    asanyarray as np_asanyarray,
+                    zeros as np_zeros)
+from cv2 import GaussianBlur as cv_GaussianBlur
+from time import sleep as time_sleep
+from sys import (stdout as sys_stdout,
+                stderr as sys_stderr)
 
 # This prints in threads
 # logger = multiprocessing.log_to_stderr()
@@ -19,9 +27,9 @@ class Pollers(object):
         self.config_frames_pipeline()
 
     def config_frames_pipeline(self):
-        rs.log_to_console(rs.log_severity.info)
-        self.pipeline = rs.pipeline()
-        config = rs.config()
+        rs_log_to_console(rs_log_severity.info)
+        self.pipeline = rs_pipeline()
+        config = rs_config()
         shape = (480, 270)
         self.shape_rgb = (424, 240)
 
@@ -31,11 +39,11 @@ class Pollers(object):
         # resolution = (640, 480)
         # resolution = shape
 
-        config.enable_stream(rs.stream.depth, shape[0], shape[1], rs.format.z16, frame_rate)
-        config.enable_stream(rs.stream.color, self.shape_rgb[0], self.shape_rgb[1], rs.format.bgr8, frame_rate_rgb)
+        config.enable_stream(rs_stream.depth, shape[0], shape[1], rs_format.z16, frame_rate)
+        config.enable_stream(rs_stream.color, self.shape_rgb[0], self.shape_rgb[1], rs_format.bgr8, frame_rate_rgb)
 
         self.profile = self.pipeline.start(config)
-        time.sleep(1)  # wait for warmup
+        time_sleep(1)  # wait for warmup
         depth_sensor = self.profile.get_device().first_depth_sensor()
         depth_scale = depth_sensor.get_depth_scale()
         clipping_distance_in_meters = 0.3
@@ -48,7 +56,7 @@ class Pollers(object):
             return None
 
     def processDepthFrame(self, depthData, width, height):
-        depthFloat = np.zeros(depthData.shape, dtype=np.float32)
+        depthFloat = np_zeros(depthData.shape, dtype=np_float32)
 
         # threshold the depth image
         grey_color = 153
@@ -60,7 +68,7 @@ class Pollers(object):
                 else:
                     depthFloat[j, i] = distance
 
-        gauss = cv.GaussianBlur(depthFloat, (5, 5), -1)
+        gauss = cv_GaussianBlur(depthFloat, (5, 5), -1)
         return gauss
 
     def pollFrame(self):
@@ -79,8 +87,8 @@ class Pollers(object):
             color = frames.get_color_frame()
 
             # print("Next frame available")
-            colorData = np.asanyarray(color.get_data())
-            depthData = np.asanyarray(depth.get_data())
+            colorData = np_asanyarray(color.get_data())
+            depthData = np_asanyarray(depth.get_data())
             # print("pre process depth data")
             # depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
 
@@ -89,8 +97,8 @@ class Pollers(object):
             return colorData, depthData
 
         except Exception as e:
-            sys.stdout.flush()
-            sys.stderr.write("exception hit\n")
-            sys.stderr.write(str(e))
+            sys_stdout.flush()
+            sys_stderr.write("exception hit\n")
+            sys_stderr.write(str(e))
             # logger.error(e)
             raise e

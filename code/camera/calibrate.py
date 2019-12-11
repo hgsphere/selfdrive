@@ -1,9 +1,15 @@
-import os
-import sys
-import cv2 as cv
-import numpy as np
+from os import path as os_path
+from sys import path as sys_path
+from cv2 import (findHomography as cv_findHomography,
+                imread as cv_imread,
+                imshow as cv_imshow,
+                waitKey as cv_waitKey,
+                circle as cv_circle,
+                warpPerspective as cv_warpPerspective,
+                destroyAllWindows as cv_destroyAllWindows)
+from numpy import array as np_array
 
-sys.path.append(os.path.abspath("../utils/"))
+sys_path.append(os_path.abspath("../utils/"))
 from makeChessboard import getChessboardPoints
 
 # help from
@@ -102,9 +108,9 @@ def getHomographyMatrix(type="color", inverse=False):
             rgbChessPts.append(rgbChessboardPts[p[0]][p[1]])
 
         if inverse:
-            hmg, status = cv.findHomography(np.array(rgbChessPts), np.array(rgbSrcPts))
+            hmg, status = cv_findHomography(np_array(rgbChessPts), np_array(rgbSrcPts))
         else:
-            hmg, status = cv.findHomography(np.array(rgbSrcPts), np.array(rgbChessPts))
+            hmg, status = cv_findHomography(np_array(rgbSrcPts), np_array(rgbChessPts))
         return hmg
 
     elif type == "depth":
@@ -116,9 +122,9 @@ def getHomographyMatrix(type="color", inverse=False):
             depChessPts.append(depChessboardPts[p[0]][p[1]])
 
         if inverse:
-            hmg, status = cv.findHomography(np.array(depChessPts), np.array(depSrcPts))
+            hmg, status = cv_findHomography(np_array(depChessPts), np_array(depSrcPts))
         else:
-            hmg, status = cv.findHomography(np.array(depSrcPts), np.array(depChessPts))
+            hmg, status = cv_findHomography(np_array(depSrcPts), np_array(depChessPts))
         return hmg
 
     elif type == "color-lowres":
@@ -130,9 +136,9 @@ def getHomographyMatrix(type="color", inverse=False):
             rgbChessPts.append(rgbChessboardPts[p[0]][p[1]])
 
         if inverse:
-            hmg, status = cv.findHomography(np.array(rgbChessPts), np.array(rgbSrcPtsLow))
+            hmg, status = cv_findHomography(np_array(rgbChessPts), np_array(rgbSrcPtsLow))
         else:
-            hmg, status = cv.findHomography(np.array(rgbSrcPtsLow), np.array(rgbChessPts))
+            hmg, status = cv_findHomography(np_array(rgbSrcPtsLow), np_array(rgbChessPts))
         return hmg
 
     else:
@@ -141,38 +147,38 @@ def getHomographyMatrix(type="color", inverse=False):
 
 
 def getImg(dir, name, show=True):
-    srcImg = cv.imread(os.path.join(dir, name))
+    srcImg = cv_imread(os_path.join(dir, name))
     if show:
-        cv.circle(srcImg, (srcImg.shape[1] // 2, srcImg.shape[0]-10), 5, (0, 255, 0), 5)
-        cv.imshow("src", srcImg)
-        cv.waitKey(0)
+        cv_circle(srcImg, (srcImg.shape[1] // 2, srcImg.shape[0]-10), 5, (0, 255, 0), 5)
+        cv_imshow("src", srcImg)
+        cv_waitKey(0)
 
     return srcImg
 
 
 def main():
-    pathDir = os.path.abspath("../../testimages/chessboard")
-    # rgbDir = os.path.join(pathDir, "rgb")
-    depDir = os.path.join(pathDir, "depth")
+    pathDir = os_path.abspath("../../testimages/chessboard")
+    # rgbDir = os_path.join(pathDir, "rgb")
+    depDir = os_path.join(pathDir, "depth")
 
     # rgbSrc = getImg(rgbDir, rgbSrcName)
     # hmg = getHomographyMatrix("color")
-    rgbDir = os.path.abspath("./tools")
+    rgbDir = os_path.abspath("./tools")
     rgbSrc = getImg(rgbDir, rgbLowSrcName, show=True)
     hmg = getHomographyMatrix("color-lowres")
-    rgbOut = cv.warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
+    rgbOut = cv_warpPerspective(rgbSrc, hmg, (rgbSrc.shape[1], rgbSrc.shape[0]))
 
-    cv.imshow("warpedRGB", rgbOut)
-    cv.waitKey(0)
+    cv_imshow("warpedRGB", rgbOut)
+    cv_waitKey(0)
 
     # depSrc = getImg(depDir, depSrcName)
     # hmgDep = getHomographyMatrix("depth")
-    # depOut = cv.warpPerspective(depSrc, hmgDep, (depSrc.shape[1], depSrc.shape[0]))
+    # depOut = cv_warpPerspective(depSrc, hmgDep, (depSrc.shape[1], depSrc.shape[0]))
     #
-    # cv.imshow("warpedDep", depOut)
-    # cv.waitKey(0)
+    # cv_imshow("warpedDep", depOut)
+    # cv_waitKey(0)
 
-    cv.destroyAllWindows()
+    cv_destroyAllWindows()
 
 
 if __name__ == '__main__':

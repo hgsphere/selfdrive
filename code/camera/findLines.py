@@ -1,9 +1,47 @@
-import os
-import sys
-import cv2 as cv
-import numpy as np
+from os import (path as os_path,
+                getcwd as os_getcwd,
+                listdir as os_listdir)
+from sys import (path as sys_path,
+                stdout as sys_stdout)
+from cv2 import (COLOR_GRAY2BGR as cv_COLOR_GRAY2BGR,
+                COLOR_BGR2HLS as cv_COLOR_BGR2HLS,
+                COLOR_BGR2HSV as cv_COLOR_BGR2HSV,
+                RETR_EXTERNAL as cv_RETR_EXTERNAL,
+                CHAIN_APPROX_NONE as cv_CHAIN_APPROX_NONE,
+                INTER_AREA as cv_INTER_AREA,
+                IMREAD_COLOR as cv_IMREAD_COLOR,
+                imread as cv_imread,
+                imwrite as cv_imwrite,
+                imshow as cv_imshow,
+                waitKey as cv_waitKey,
+                VideoWriter_fourcc as cv_VideoWriter_fourcc,
+                VideoWriter as cv_VideoWriter,
+                line as cv_line,
+                rectangle as cv_rectangle,
+                cvtColor as cv_cvtColor,
+                extractChannel as cv_extractChannel,
+                inRange as cv_inRange,
+                bitwise_or as cv_bitwise_or,
+                resize as cv_resize,
+                warpPerspective as cv_warpPerspective,
+                GaussianBlur as cv_GaussianBlur,
+                HoughLinesP as cv_HoughLinesP,
+                getVersionMajor as cv_getVersionMajor,
+                findContours as cv_findContours,
+                drawContours as cv_drawContours,
+                addWeighted as cv_addWeighted,
+                Canny as cv_Canny)
+from numpy import (array as np_array,
+                    zeros_like as np_zeros_like,
+                    uint8 as np_uint8,
+                    pi as np_pi,
+                    copy as np_copy,
+                    histogram as np_histogram,
+                    mean as np_mean,
+                    asarray as np_asarray,
+                    std as np_std)
 
-sys.path.append(os.path.abspath(os.getcwd()))
+sys_path.append(os_path.abspath(os_getcwd()))
 from calibrate import getHomographyMatrix
 from contourPlus import contourPlus, warpPoints
 
@@ -17,17 +55,17 @@ def init_video():
     global writer_rgb
     shape_rgb = (424, 240)
     frame_rate_rgb = 30
-    fourcc = cv.VideoWriter_fourcc(*"MJPG")                                                                                                                              
-    outpath_rgb = os.path.join(os.getcwd(), "logVideo.avi")                                                                                                        
-    #outpath_dep = os.path.join(os.getcwd(), "output-depth-low.avi")                                                                                                      
-    writer_rgb = cv.VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,                                                                                                     
+    fourcc = cv_VideoWriter_fourcc(*"MJPG")
+    outpath_rgb = os_path.join(os_getcwd(), "logVideo.avi")
+    #outpath_dep = os_path.join(os_getcwd(), "output-depth-low.avi")
+    writer_rgb = cv_VideoWriter(outpath_rgb, fourcc, frame_rate_rgb,
         (shape_rgb[0], shape_rgb[1]), True)
 
 
 
 def newColorSpace(img, cNum=2):
-    hls = cv.cvtColor(img, cv.COLOR_BGR2HLS)
-    chan = cv.extractChannel(hls, cNum)
+    hls = cv_cvtColor(img, cv_COLOR_BGR2HLS)
+    chan = cv_extractChannel(hls, cNum)
 
     # we want to look at the saturation channel
     return chan
@@ -40,22 +78,22 @@ def cleanupImage(img):
     # the yellow looks white and the white looks black
 
     # threshold to only keep yellow lines
-    threshYellow = cv.inRange(satImg, 150, 255)
+    threshYellow = cv_inRange(satImg, 150, 255)
     # displayImage("threshYellow", threshYellow)
     # apply a Gaussian blur to smooth edges and remove noise
     kSz = 7
-    smoothed = cv.GaussianBlur(threshYellow, (kSz, kSz), 0)
+    smoothed = cv_GaussianBlur(threshYellow, (kSz, kSz), 0)
     # kill the part of the image that has the bumper in it
-    cv.rectangle(smoothed, (160, 200), (240, 239), color=0, thickness=-1)
-    smoothed = np.zeros_like(satImg)
+    cv_rectangle(smoothed, (160, 200), (240, 239), color=0, thickness=-1)
+    smoothed = np_zeros_like(satImg)
     # displayImage("yellow thresh", smoothed)
 
     # get yellow from hsv
-    hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-    lower_yellow = np.array([10, 100, 100], dtype=np.uint8)
-    upper_yellow = np.array([40, 255, 255], dtype=np.uint8)
-    mask_yellow = cv.inRange(hsv, lower_yellow, upper_yellow)
-    blur_yellow = cv.GaussianBlur(mask_yellow, (kSz, kSz), 0)
+    hsv = cv_cvtColor(img, cv_COLOR_BGR2HSV)
+    lower_yellow = np_array([10, 100, 100], dtype=np_uint8)
+    upper_yellow = np_array([40, 255, 255], dtype=np_uint8)
+    mask_yellow = cv_inRange(hsv, lower_yellow, upper_yellow)
+    blur_yellow = cv_GaussianBlur(mask_yellow, (kSz, kSz), 0)
     # displayImage("mask_yellow", blur_yellow)
 
     # get the grayscale channel from HLS color space
@@ -63,15 +101,15 @@ def cleanupImage(img):
     # displayImage("grayscale", grayImg)
     # threshold to only have white lines
     lowerBound = int(grayImg.max() - 30)
-    threshWhite = cv.inRange(grayImg, lowerBound, 255)
+    threshWhite = cv_inRange(grayImg, lowerBound, 255)
     # kill the part of the image that has detected the bumper
-    cv.rectangle(threshWhite, (165, 210), (245, 230), color=0, thickness=-1)
+    cv_rectangle(threshWhite, (165, 210), (245, 230), color=0, thickness=-1)
 
     # displayImage("gray thresh", threshWhite)
-    smoothed2 = cv.GaussianBlur(threshWhite, (kSz, kSz), 0)
+    smoothed2 = cv_GaussianBlur(threshWhite, (kSz, kSz), 0)
 
     # mask the 2 yellow images together
-    combined = cv.bitwise_or(smoothed, blur_yellow)
+    combined = cv_bitwise_or(smoothed, blur_yellow)
 
     # displayImage("combined", combined)
     return combined, smoothed2
@@ -79,8 +117,8 @@ def cleanupImage(img):
 
 
 def houghLines(img):
-    lines = cv.HoughLinesP(
-        img, rho=1, theta=np.pi / 180,
+    lines = cv_HoughLinesP(
+        img, rho=1, theta=np_pi / 180,
         threshold=20, minLineLength=20, maxLineGap=200
     )
     if lines is None or len(lines) == 0:
@@ -88,7 +126,7 @@ def houghLines(img):
 
     color = [255, 0, 0]
     thickness = 1
-    houghImg = np.copy(cv.cvtColor(img, cv.COLOR_GRAY2BGR))
+    houghImg = np_copy(cv_cvtColor(img, cv_COLOR_GRAY2BGR))
     newLines = []
 
     # get rid of ones with bad slope
@@ -104,7 +142,7 @@ def houghLines(img):
             if abs(slope) < 0.3:
                 continue
 
-            cv.line(houghImg, (x1, y1), (x2, y2), color, thickness)
+            cv_line(houghImg, (x1, y1), (x2, y2), color, thickness)
             newLines.append([[x1, y1, x2, y2]])
 
     # displayImage("hough", houghImg)
@@ -122,7 +160,7 @@ def within(x, target, threshold):
 def getLinesPoints(img, lines, debug=False, lineCnt=2):
     if lines is None:
         if debug:
-            return [None, None], cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+            return [None, None], cv_cvtColor(img, cv_COLOR_GRAY2BGR)
         else:
             return [None, None]
 
@@ -144,7 +182,7 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
 
     if len(slopes) == 0:
         if debug:
-            return [None, None], cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+            return [None, None], cv_cvtColor(img, cv_COLOR_GRAY2BGR)
         else:
             return [None, None]
 
@@ -153,7 +191,7 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
     # pp.pprint(x_intercepts)
     binNum = 12
     withinVal = width // binNum
-    hist, bins = np.histogram(x_intercepts, bins=12)
+    hist, bins = np_histogram(x_intercepts, bins=12)
 
     histSort = hist.argsort()[-lineCnt:]
     binLanes = sorted([int(bins[x]) for x in histSort])
@@ -169,8 +207,8 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
         weights.append(len(slope))
         slopeList, intcList = list(zip(*slope))
 
-        avgSlope = np.mean(np.asarray(slopeList))
-        avgInt = int(np.mean(np.asarray(intcList)))
+        avgSlope = np_mean(np_asarray(slopeList))
+        avgInt = int(np_mean(np_asarray(intcList)))
 
         p0 = (avgInt, height)
         if avgSlope == 0:
@@ -179,14 +217,14 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
             p1 = (avgInt - int(height / avgSlope), 0)
         lanes.append([p0, p1])
 
-    imgColor = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+    imgColor = cv_cvtColor(img, cv_COLOR_GRAY2BGR)
     GREEN = (0, 255, 0)
 
     for p0, p1 in lanes:
         # OverflowError: signed integer is greater than maximum ###################### TODO
         # Im just gonna skip this for now
         pass
-        cv.line(imgColor, p0, p1, GREEN, 3)
+        cv_line(imgColor, p0, p1, GREEN, 3)
 
     # displayImage("lanes", imgColor)
     if debug:
@@ -196,11 +234,11 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
 
 
 def getContours(canny):
-    cannyColor = cv.cvtColor(canny, cv.COLOR_GRAY2BGR)
-    if cv.getVersionMajor() == 3:
-        _, contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    cannyColor = cv_cvtColor(canny, cv_COLOR_GRAY2BGR)
+    if cv_getVersionMajor() == 3:
+        _, contours, hierarchy = cv_findContours(canny, cv_RETR_EXTERNAL, cv_CHAIN_APPROX_NONE)
     else:
-        contours, hierarchy = cv.findContours(canny, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+        contours, hierarchy = cv_findContours(canny, cv_RETR_EXTERNAL, cv_CHAIN_APPROX_NONE)
     if len(contours) is 0:
         print("error contours has length 0")
         return None
@@ -210,9 +248,9 @@ def getContours(canny):
     # sort by the area
     contours2.sort(key=lambda x: x.getArea(), reverse=True)
     # get the average
-    mean = np.mean([c.getArea() for c in contours2])
+    mean = np_mean([c.getArea() for c in contours2])
 
-    # sd = np.std([c.getArea() for c in contours2])
+    # sd = np_std([c.getArea() for c in contours2])
     if len(contours2) > 4:
         # accept anything above the mean
         contours3 = [c for c in contours2 if c.getArea() > mean]
@@ -224,10 +262,10 @@ def getContours(canny):
     approx = [c.approx for c in contours4]
 
     # display
-    cv.drawContours(cannyColor, approx, -1, (0, 255, 0), 10)
+    cv_drawContours(cannyColor, approx, -1, (0, 255, 0), 10)
     # displayImage("contours", cannyColor)
-    black = np.zeros_like(canny)
-    cv.drawContours(black, approx, -1, 255, 5)
+    black = np_zeros_like(canny)
+    cv_drawContours(black, approx, -1, 255, 5)
     return black
 
 
@@ -281,19 +319,19 @@ def showHeading(line, orig):
 
     p0, p1 = line
 
-    justLine = np.zeros_like(orig)
-    cv.line(justLine, p0, p1, (0, 0, 255), 3)
+    justLine = np_zeros_like(orig)
+    cv_line(justLine, p0, p1, (0, 0, 255), 3)
 
-    overlay = cv.addWeighted(orig, 1.0, justLine, beta=0.95, gamma=0.0)
+    overlay = cv_addWeighted(orig, 1.0, justLine, beta=0.95, gamma=0.0)
     # displayImage("overlay", overlay)
 
     return overlay
 
 
 def displayImage(name, mat, wait=True):
-    cv.imshow(name, mat)
+    cv_imshow(name, mat)
     if wait:
-        return cv.waitKey(0)
+        return cv_waitKey(0)
     else:
         return None
 
@@ -309,7 +347,7 @@ def addImageQuadrant(bigImg, img, quadrant):
 
     # color convert
     if len(img.shape) == 2:
-        img = cv.cvtColor(img, cv.COLOR_GRAY2BGR)
+        img = cv_cvtColor(img, cv_COLOR_GRAY2BGR)
     # we know they are all 640 x 480
     width = img.shape[1]
     height = img.shape[0]
@@ -333,11 +371,11 @@ def addImageQuadrant(bigImg, img, quadrant):
         return None
 
     # subsample image
-    interp = cv.INTER_AREA
-    smallImg = cv.resize(img, (halfW, halfH), interpolation=interp)
+    interp = cv_INTER_AREA
+    smallImg = cv_resize(img, (halfW, halfH), interpolation=interp)
 
     # put on image
-    sys.stdout.flush()
+    sys_stdout.flush()
     bigImg[p0[1]:p1[1], p0[0]:p1[0]] = smallImg
 
     return bigImg
@@ -395,16 +433,16 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
     # allow passing the image in directly
     if isinstance(path, str):
-        img = cv.imread(path, cv.IMREAD_COLOR)
+        img = cv_imread(path, cv_IMREAD_COLOR)
     else:
         img = path
 
     kSz = 5
     # displayImage('input',img)
-    warped = cv.warpPerspective(img, hmg, (img.shape[1], img.shape[0]))
-    warped = cv.GaussianBlur(warped, (kSz, kSz), 0)
+    warped = cv_warpPerspective(img, hmg, (img.shape[1], img.shape[0]))
+    warped = cv_GaussianBlur(warped, (kSz, kSz), 0)
     # kill the top of the image
-    warped = cv.rectangle(warped, (0, 0), (img.shape[1], img.shape[0] // 2), (0, 0, 0), -1)
+    warped = cv_rectangle(warped, (0, 0), (img.shape[1], img.shape[0] // 2), (0, 0, 0), -1)
     # displayImage("warped", warped)
 
     # convert color space, threshold the image, remove noise
@@ -413,22 +451,22 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
     # collage of images - original (w/ heading), smoothed, contours & canny, lanes
     if debug:
-        collage = np.zeros_like(img)
+        collage = np_zeros_like(img)
         collage = addImageQuadrant(collage, img, 0)
-        collage = addImageQuadrant(collage, cv.bitwise_or(yellowImg, whiteImg), 1)
+        collage = addImageQuadrant(collage, cv_bitwise_or(yellowImg, whiteImg), 1)
 
     try:
         # apply Canny edge detection
-        cannyWhite = cv.Canny(whiteImg, 100, 200)
-        cannyYellow = cv.Canny(yellowImg, 100, 200)
-        cannyBoth = cv.bitwise_or(cannyWhite, cannyYellow)
+        cannyWhite = cv_Canny(whiteImg, 100, 200)
+        cannyYellow = cv_Canny(yellowImg, 100, 200)
+        cannyBoth = cv_bitwise_or(cannyWhite, cannyYellow)
         # displayImage("Canny", canny)
         contourWhite = getContours(cannyWhite)
         contourYellow = getContours(cannyYellow)
         if contourWhite is None or contourYellow is None:
             print("error no contours found")
             return None
-        # contourImg = cv.cvtColor(cannyColor, cv.COLOR_BGR2GRAY)
+        # contourImg = cv_cvtColor(cannyColor, cv_COLOR_BGR2GRAY)
 
         linesWhite = houghLines(contourWhite)
         linesYellow = houghLines(contourYellow)
@@ -452,7 +490,7 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
         # print("yellow lanes: {}".format(pointsYellow))
         leftLane, rightLane = fixLaneData(cannyBoth, pointsWhite, pointsYellow)
         # print("new lanes: {}, {}".format(leftLane, rightLane))
-        # sys.stdout.flush()
+        # sys_stdout.flush()
         if leftLane is None:
             origTarget = None
         else:
@@ -468,7 +506,7 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
         if not printOnce:
             printOnce = 1
-            cv.imwrite("overlay.jpeg", showHeading(origTarget, img))
+            cv_imwrite("overlay.jpeg", showHeading(origTarget, img))
 
         #if SAVE_VIDEO:
         #    t = ((target[0][0][0], target[0][0][1]), (target[1][0][0], target[1][0][1]))
@@ -478,8 +516,8 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
         if debug:
             overlay = showHeading(origTarget, img)
             collage = addImageQuadrant(collage, overlay, 0)
-            collage = addImageQuadrant(collage, cv.bitwise_or(contourWhite, contourYellow), 2)
-            collage = addImageQuadrant(collage, cv.bitwise_or(laneImgWhite, laneImgYellow), 3)
+            collage = addImageQuadrant(collage, cv_bitwise_or(contourWhite, contourYellow), 2)
+            collage = addImageQuadrant(collage, cv_bitwise_or(laneImgWhite, laneImgYellow), 3)
             return origTarget, collage
         else:
             return origTarget
@@ -495,11 +533,11 @@ def parseImage(path, hmg, invh, debug=False, lineMultiplier=1.0):
 
 
 def main():
-    # imgDir = os.path.abspath("../../testimages/lowres")
-    imgDir = os.path.abspath("../../testvideo/frames")
-    # imgDir = os.path.abspath("../../testimages/chessboard")
-    imgList = os.listdir(imgDir)
-    imgs = sorted([os.path.join(imgDir, x) for x in imgList])
+    # imgDir = os_path.abspath("../../testimages/lowres")
+    imgDir = os_path.abspath("../../testvideo/frames")
+    # imgDir = os_path.abspath("../../testimages/chessboard")
+    imgList = os_listdir(imgDir)
+    imgs = sorted([os_path.join(imgDir, x) for x in imgList])
 
     hmg = getHomographyMatrix("color-lowres")
     invh = getHomographyMatrix("color-lowres", inverse=True)
@@ -507,7 +545,7 @@ def main():
     for i in imgs:
         if not "frame150" in i:
             continue
-        print(os.path.basename(i))
+        print(os_path.basename(i))
         result = parseImage(i, hmg, invh, debug=True)
         if result is not None:
             target, overlay = result

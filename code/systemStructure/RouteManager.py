@@ -1,17 +1,22 @@
-
-import os
-import queue
-import sys
-import json
-import collections
-import numpy as np
-import time
-import cv2 as cv
+from os import (path as os_path)
+from sys import (path as sys_path)
+from queue import Empty as queue_Empty
+from json import load as json_load
+from collections import deque
+from numpy import ( sin as np_sin,
+                    cos as np_cos,
+                    deg2rad as np_deg2rad,
+                    zeros as np_zeros,
+                    unravel_index as np_unravel_index,
+                    argmin as np_argmin,
+                    linspace as np_linspace,
+                    sum as np_sum,
+                    mean as np_mean)
 from math import sqrt
 import features
 
-sys.path.append(os.path.abspath("../car"))
-sys.path.append(os.path.abspath("../ips"))
+sys_path.append(os_path.abspath("../car"))
+sys_path.append(os_path.abspath("../ips"))
 from asyncDrive import asyncDrive
 from digraph import getPtName, decodePtName
 import ips
@@ -54,9 +59,9 @@ class RouteManager(object):
         self.ips = ips.IPS()
         self.current_path = None
         self.current_path_idx = 0
-        print(os.path.join(globals.code_base_dir, "ips/route.json"))
-        with open(os.path.join(globals.code_base_dir, "ips/route.json")) as jf:
-            self.route_critical_waypoints = json.load(jf)
+        print(os_path.join(globals.code_base_dir, "ips/route.json"))
+        with open(os_path.join(globals.code_base_dir, "ips/route.json")) as jf:
+            self.route_critical_waypoints = json_load(jf)
         self.nearStopThreshold = self.ips.avg_dst * 4
         self.corner_turn = False
         self.threshDist = self.ips.avg_dst * 7
@@ -76,12 +81,12 @@ class RouteManager(object):
         self.reset_yolo_flag = None
 
         # history variables
-        zz = np.zeros((1,30)) 
-        self.crossdeque = collections.deque(zz.tolist()[0],maxlen=30)
-        zz = np.zeros((10,2))
-        self.coords_hist = collections.deque(zz.tolist(),maxlen=10)
-        zz = np.zeros((1,10))
-        self.heading_hist = collections.deque(zz.tolist()[0],maxlen=10)
+        zz = np_zeros((1,30))
+        self.crossdeque = deque(zz.tolist()[0],maxlen=30)
+        zz = np_zeros((10,2))
+        self.coords_hist = deque(zz.tolist(),maxlen=10)
+        zz = np_zeros((1,10))
+        self.heading_hist = deque(zz.tolist()[0],maxlen=10)
         self.last_coords = (0,0)
         self.last_dist_change = 0
         self.last_dist = 0
@@ -114,7 +119,7 @@ class RouteManager(object):
             # try:
             #     coords = self.ipsQ.get_nowait()
             #     self.COORDINATES = coords
-            # except queue.Empty as e:
+            # except queue_Empty as e:
             #     pass
 
             # I don't think we can grab these variables this way
@@ -353,10 +358,6 @@ class RouteManager(object):
             #print(self.current_path,self.name)
         self.last_dist = dist
         self.last_dist_change = dist_change
-        #img = self.ips.displayPath(self.current_path[0])
-        #cv.imshow("features", img)
-        #time.sleep(5)
-        # debug
 
         #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
         #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
@@ -397,7 +398,7 @@ class RouteManager(object):
     def crosswalk(self):
         self.crossdeque.append(self.CROSSWALK)
 
-        if np.sum(list(self.crossdeque)[19:29]) > 8:
+        if np_sum(list(self.crossdeque)[19:29]) > 8:
             print(list(self.crossdeque))
             return False
         return False
@@ -423,11 +424,11 @@ class RouteManager(object):
 
     def gen_arc(self, head, radius, coordinates):
         arcCount = 20
-        pheads = np.linspace(head - 60, head + 60, num=arcCount)
+        pheads = np_linspace(head - 60, head + 60, num=arcCount)
         # print(pheads)
-        x = np.cos(np.deg2rad(pheads)) * radius + coordinates[0]
-        y = np.sin(np.deg2rad(pheads)) * radius + coordinates[1]
-        pcoords = np.zeros((arcCount, 2))
+        x = np_cos(np_deg2rad(pheads)) * radius + coordinates[0]
+        y = np_sin(np_deg2rad(pheads)) * radius + coordinates[1]
+        pcoords = np_zeros((arcCount, 2))
         for i in range(0, arcCount):
             pcoords[i, :] = x[i], y[i]
         return pcoords, pheads
@@ -451,14 +452,14 @@ class RouteManager(object):
         pcoords, pheads = self.gen_arc(head, rad, self.COORDINATES)
         indx = self.quick_index_lookup()
         pathSlice = self.current_path[indx:]
-        distArray = np.zeros((len(pcoords), len(pathSlice)))
+        distArray = np_zeros((len(pcoords), len(pathSlice)))
 
         for i, arcpt in enumerate(pcoords, start=0):
             for j, pt in enumerate(pathSlice):
                 dist = sqrt(pow(arcpt[0] - pt[0], 2) + pow(arcpt[1] - pt[1], 2))
                 distArray[i][j] = dist
 
-        minIdx = np.unravel_index(np.argmin(distArray, axis=None), distArray.shape)
+        minIdx = np_unravel_index(np_argmin(distArray, axis=None), distArray.shape)
         # print(pcoords)
         # print("Minimum index is {}".format(minIdx))
         minPt = pheads[minIdx[0]]
@@ -488,7 +489,7 @@ class RouteManager(object):
         head = ips.findAbsoluteHeading(self.last_coords, self.COORDINATES)
         lasthead = list(self.heading_hist)[9]
         self.heading_hist.append(head)
-        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        # avgHead = np_mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
         avgHead = lasthead
         # find the heading the car should be at
         nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
@@ -531,7 +532,7 @@ class RouteManager(object):
             head = ips.findAbsoluteHeading(old_coords, self.COORDINATES)
         lasthead = list(self.heading_hist)[9]
         self.heading_hist.append(head)
-        # avgHead = np.mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
+        # avgHead = np_mean(list(self.heading_hist)[8:9]) # avg last 3 headings (deal with errornous GPS)
         avgHead = lasthead
 
         # heading_offset = self.find_look_ahead(avgHead, 100)

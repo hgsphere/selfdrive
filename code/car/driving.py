@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-import serial
-import time
-import datetime
+from serial import Serial
+from time import (sleep as time_sleep)
+from datetime import (datetime as datetime_datetime)
 
 # Assumed Arduino Serial device
 ARDUINO_SERIAL = "/dev/ttyUSB0"
@@ -66,10 +66,10 @@ class control:
         # init everyting
         self.serial = None
         self.serial_connect()
-        time.sleep(2) # This wait is needed or else the configs don't take effect
+        time_sleep(2) # This wait is needed or else the configs don't take effect
 #        self.init_history()
         self.init_calibrate()
-        # time.sleep(2)
+        # time_sleep(2)
 
         # things to be used later
         self.history = None
@@ -83,7 +83,7 @@ class control:
         self.corner_turn = False
         # Make sure the car is stopped
         self.force_stop()
-        time.sleep(1)
+        time_sleep(1)
 
     def __del__(self):
         self.serial_close()
@@ -91,7 +91,7 @@ class control:
 
     def init_history(self):
         self.history = open(HISTORY_FILE,"w+")
-        preface = '############## Driving Log Started ({})\n\n'.format(datetime.datetime.now())
+        preface = '############## Driving Log Started ({})\n\n'.format(datetime_datetime.now())
         self.history.write(preface)
 
     ######################## CONTROL
@@ -113,7 +113,7 @@ class control:
         self.force_stop()
         
         print('INFO: Delay ({})'.format(.5))
-        time.sleep(.5)
+        time_sleep(.5)
 
         print('INFO: Turning ({})'.format(angle))
         # Start turn
@@ -121,16 +121,16 @@ class control:
         self.drive(SPEED_SLOW*2) # TODO I just doubled the turn speed
 
         print('INFO: Delay ({})'.format(init_delay)) 
-        time.sleep(init_delay)  # give it a second to pid to start
+        time_sleep(init_delay)  # give it a second to pid to start
         self.steer(angle)
         print('INFO: Delay ({})'.format(duration))
-        time.sleep(duration)
+        time_sleep(duration)
 
         # Stop
         #self.force_stop()
         #print('INFO: Force Right Turn: Finished ')
         #print('INFO: Delay ({})'.format(2))
-        #time.sleep(2)
+        #time_sleep(2)
 
     """Force the Car to Move Forward
          duration -- how long to move forward (default 3)
@@ -278,20 +278,20 @@ class control:
     """
     def get_encoder(self):
         self.push_command('!getEncoder\n')
-        time.sleep(.001)
+        time_sleep(.001)
         value = self.serial.readline()
         #print(value)
         return round(float(value.decode()))
 
     def get_speed(self):
         self.push_command('!getSpeed\n')
-        time.sleep(.001)
+        time_sleep(.001)
         value = self.serial.readline()
         return round(float(value.decode()),2)
 
     def get_distance(self):
         self.push_command('!distance\n')
-        time.sleep(.001)
+        time_sleep(.001)
         value = self.serial.readline()
         return round(float(value.decode()),2)
         
@@ -301,7 +301,7 @@ class control:
     """Sets up Serial Connection to Arduio 
     """
     def serial_connect(self):
-        self.serial = serial.Serial(ARDUINO_SERIAL, 115200, timeout=.5)     # Assumed Baud rate
+        self.serial = Serial(ARDUINO_SERIAL, 115200, timeout=.5)     # Assumed Baud rate
         #self.serial.flushInput()    # This might make the wheels turn full left every so often
         #self.serial.flushOutput()
         print('INFO: Arduino Connection Established')

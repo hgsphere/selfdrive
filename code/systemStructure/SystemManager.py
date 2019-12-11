@@ -1,15 +1,19 @@
 #!/usr/bin/python3 
 
-import sys
-import os
-import multiprocessing as mp
-import threading
+from os import (path as os_path,
+                putenv as os_putenv)
+from sys import (path as sys_path,
+                argv as sys_argv)
+from multiprocessing import (   Queue as mp_Queue,
+                                Pipe as mp_Pipe,
+                                Value as mp_Value,
+                                get_context as mp_get_context)
 from queue import Queue
 
-sys.path.append(os.path.abspath("../ips"))
-sys.path.append(os.path.abspath("../systemStructure"))
-sys.path.append(os.path.abspath("../car"))
-sys.path.append(os.path.abspath("../yolo"))
+sys_path.append(os_path.abspath("../ips"))
+sys_path.append(os_path.abspath("../systemStructure"))
+sys_path.append(os_path.abspath("../car"))
+sys_path.append(os_path.abspath("../yolo"))
 
 from ImageProcessor import imageprocessor
 from RouteManager import RouteManager
@@ -25,22 +29,22 @@ class SystemManager(object):
         self.frame_emergencyStopQ = Queue(maxsize=60)
         self.frame_stopDetectQ = Queue(maxsize=60)
         # queues that the route manager pulls from
-        self.IPS_routeManagerQ = mp.Queue(maxsize=1)
-        self.laneDetect_routeManagerQ = mp.Queue(maxsize=60)
-        self.emergencyStop_routeManagerQ = mp.Queue(maxsize=60)
-        self.stopDetect_routeManagerQ = mp.Queue(maxsize=60)
+        self.IPS_routeManagerQ = mp_Queue(maxsize=1)
+        self.laneDetect_routeManagerQ = mp_Queue(maxsize=60)
+        self.emergencyStop_routeManagerQ = mp_Queue(maxsize=60)
+        self.stopDetect_routeManagerQ = mp_Queue(maxsize=60)
         # For transfering data to/from Yolo detector
-        self.yolo_pipe = mp.Pipe()                  # transfer the next frame
-        self.yolo_ready_flag = mp.Value('i', 0)     # detector is ready for another frame
-        self.yolo_green_flag = mp.Value('i', 0)     # green light detected
-        self.stop_now_flag = mp.Value('i', 0)       # traffic light is close, stop
-        self.reset_yolo_flag = mp.Value('i', 0)     # reset the box around the traffic light
+        self.yolo_pipe = mp_Pipe()                  # transfer the next frame
+        self.yolo_ready_flag = mp_Value('i', 0)     # detector is ready for another frame
+        self.yolo_green_flag = mp_Value('i', 0)     # green light detected
+        self.stop_now_flag = mp_Value('i', 0)       # traffic light is close, stop
+        self.reset_yolo_flag = mp_Value('i', 0)     # reset the box around the traffic light
         # create the objects
         self.imgProc = imageprocessor()
         self.routeManager = RouteManager()
 
         # fix YOLO thing
-        os.putenv("MXNET_CUDNN_AUTOTUNE_DEFAULT", "0")
+        os_putenv("MXNET_CUDNN_AUTOTUNE_DEFAULT", "0")
 
     def initializeSystem(self):
         print("Initializing System")
@@ -52,7 +56,7 @@ class SystemManager(object):
         print("Shutting down system")
 
     def main(self):
-        if len(sys.argv) > 1 and sys.argv[1] is True:
+        if len(sys_argv) > 1 and sys_argv[1] is True:
             print("debugging enabled")
 
         # set up stuff for good termination later
@@ -62,10 +66,10 @@ class SystemManager(object):
         yoloDetectorProcess = None
 
         try:
-            ctx = mp.get_context('fork')
+            ctx = mp_get_context('fork')
             # IPS poller process setup and start
-            lat = mp.Value('d', 0.0)
-            lon = mp.Value('d', 0.0)
+            lat = mp_Value('d', 0.0)
+            lon = mp_Value('d', 0.0)
             ipsPollProcess = ctx.Process(target=pollCoordinates, args=(lat,lon), name="IPSPoller")
             ipsPollProcess.start()
             # Lane detector process setup and start

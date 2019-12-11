@@ -1,14 +1,19 @@
-
-import sys
-import os
-import cv2 as cv
-import numpy as np
-from glob import glob
 #!/usr/bin/python3
+
+from sys import (exit as sys_exit)
+from os import (path as os_path)
+from cv2 import (imread as cv_imread,
+                imshow as cv_imshow,
+                waitKey as cv_waitKey,
+                destroyAllWindows as cv_destroyAllWindows,
+                warpPerspective as cv_warpPerspective,
+                getPerspectiveTransform as cv_getPerspectiveTransform)
+from numpy import (float32 as np_float32)
+from glob import glob
 
 print("Obsolete! Use /camera/calibrate.py")
 print("see /camera/testWarp.py for an example")
-sys.exit(-1)
+sys_exit(-1)
 
 # dimensions we're working with
 IMG_H = 480
@@ -73,19 +78,19 @@ imgPoints = {
 }
 
 src1_ref = "calibre_centerv1_1.jpeg"
-src1 = np.float32(imgPoints[src1_ref])
+src1 = np_float32(imgPoints[src1_ref])
 src2_ref = "calibre_centerv1_2.jpeg"
-src2 = np.float32(imgPoints[src2_ref])
+src2 = np_float32(imgPoints[src2_ref])
 dstPts = [
     [0, 0], [IMG_W, 0], [0, IMG_H], [IMG_W, IMG_H]
 ]
-dst = np.float32(dstPts)
+dst = np_float32(dstPts)
 
 # transform matrices
-M1Transform = cv.getPerspectiveTransform(src1, dst)
-M2Transform = cv.getPerspectiveTransform(src2, dst)
-M1Inverse   = cv.getPerspectiveTransform(dst, src1)
-M2Inverse   = cv.getPerspectiveTransform(dst, src2)
+M1Transform = cv_getPerspectiveTransform(src1, dst)
+M2Transform = cv_getPerspectiveTransform(src2, dst)
+M1Inverse   = cv_getPerspectiveTransform(dst, src1)
+M2Inverse   = cv_getPerspectiveTransform(dst, src2)
 
 
 def main():
@@ -93,9 +98,9 @@ def main():
     images = glob("../../testimages/*.jpeg")
 
     for path in images:
-        basename = os.path.basename(path)
+        basename = os_path.basename(path)
         # print(path)
-        img = cv.imread(path)
+        img = cv_imread(path)
 
         cSrc = int(basename.split('.')[0][-1])
         if cSrc == 1:
@@ -104,15 +109,15 @@ def main():
             M = M2Transform
         else:
             print("error!")
-            sys.exit(-1)
+            sys_exit(-1)
 
-        warped = cv.warpPerspective(img, M, (IMG_W, IMG_W))
+        warped = cv_warpPerspective(img, M, (IMG_W, IMG_W))
 
-        cv.imshow("img", img)
-        cv.imshow("warped", warped)
-        cv.waitKey(0)
+        cv_imshow("img", img)
+        cv_imshow("warped", warped)
+        cv_waitKey(0)
 
-    cv.destroyAllWindows()
+    cv_destroyAllWindows()
 
 
 if __name__ == '__main__':

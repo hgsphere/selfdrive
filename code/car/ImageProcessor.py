@@ -1,15 +1,17 @@
 #!/usr/bin/bash
 
-import os
-import sys
-import time
-import cv2 as cv
-import numpy as np
-import pyrealsense2 as rs
+from os import (path as os_path,
+                getcwd as os_getcwd)
+from sys import (path as sys_path)
+from cv2 import (imwrite as cv_imwrite,
+                imshow as cv_imshow,
+                waitKey as cv_waitKey)
+from numpy import ( pi as np_pi,
+                    arctan as np_arctan)
 
-sys.path.append(os.path.abspath(os.getcwd()))
-sys.path.append(os.path.abspath("../camera/"))
-sys.path.append(os.path.abspath("../systemStructure/"))
+sys_path.append(os_path.abspath(os_getcwd()))
+sys_path.append(os_path.abspath("../camera/"))
+sys_path.append(os_path.abspath("../systemStructure/"))
 from calibrate import getHomographyMatrix
 from findLines import parseImage, displayImage, showHeading, cleanupImage, getContours, init_video
 from findStopLine import findStopLine, drawCrossBox, drawCrossLines
@@ -38,8 +40,8 @@ class imageprocessor:
         self.invh = getHomographyMatrix("color-lowres", inverse=True)
 
     def displayImage(self, name, mat):
-            cv.imshow(name, mat)
-            return cv.waitKey(0)
+            cv_imshow(name, mat)
+            return cv_waitKey(0)
 
     def get_half_target(self,target):
         (p0,p1) = target
@@ -70,8 +72,8 @@ class imageprocessor:
         if bottomX-avgTopX == 0:
             #print('HELP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111')
             return 0
-        angle = np.arctan((CAR_CENTER_RATIO*640 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
-        angle = 180*angle/np.pi
+        angle = np_arctan((CAR_CENTER_RATIO*640 - avgTopX)/(avgTopY-bottomY)) #was 640 but should be 424
+        angle = 180*angle/np_pi
         # angle = 0
         return angle
 
@@ -148,7 +150,7 @@ class imageprocessor:
             # print("count: {}".format(count))
             if (color is None) and (depth is None):
                 continue
-            # cv.imwrite("testFrame{}.jpeg".format(count), color)
+            # cv_imwrite("testFrame{}.jpeg".format(count), color)
 
             angle = self.getCorrectionAngle(color)
             emStop = self.emStopD.detectStop(depth)

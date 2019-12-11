@@ -1,5 +1,3 @@
-import numpy as np
-
 class PID():
 
     def __init__(self,kp=1, ki=1, kd=1):
