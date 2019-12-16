@@ -44,8 +44,6 @@ class PID():
         ret = self.kp*self.current_error + self.ki*self.total_error + self.kd*self.diff
         # Threshod result angle
         ret = self.thres(ret,30)
-        #ret = ret if (ret<=30) else 30
-        #ret = ret if (ret>=-30) else -30
 
         if override: # If we want to override the previous errors with the actual angle sent to car
             # Recalc prev error
@@ -56,7 +54,7 @@ class PID():
             self.prev_error = self.thres(self.prev_error,30)
             
             # Recalc total error
-            #self.total_error = self.total_error - self.current_error + self.prev_error
+            # self.total_error = self.total_error - self.current_error + self.prev_error
 
             # Threshold total error
             self.total_error = self.thres(self.total_error,800)

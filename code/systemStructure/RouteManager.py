@@ -95,10 +95,10 @@ class RouteManager(object):
 
     def runSupervisorStateMachine(self, laneDetect_routeManagerQ, stopDetect_routeManagerQ, emergencyStop_routeManagerQ,
                                   lat, lon, yolo_green_flag, stop_now_flag, reset_yolo_flag):
+        """This is the function that gets run as a separate multi-process."""
         self.laneDetectQ = laneDetect_routeManagerQ
         self.stopDetectQ = stopDetect_routeManagerQ
         self.emergencyStopQ = emergencyStop_routeManagerQ
-        #self.ipsQ = ips_routeManagerQ
         self.lat = lat
         self.lon = lon
         self.greenFlag = yolo_green_flag
@@ -108,26 +108,20 @@ class RouteManager(object):
         while True:
             self.angle = self.laneDetectQ.get()
 
-            #print(self.angle, end='\t')
+            # print(self.angle, end='\t')
             self.CROSSWALK = self.stopDetectQ.get()
 
-            #print(self.CROSSWALK, end='\t')
+            # print(self.CROSSWALK, end='\t')
             self.EMERGENCY = self.emergencyStopQ.get(timeout=1000)
 
-            #print(self.EMERGENCY, end='\t')
-
-            # try:
-            #     coords = self.ipsQ.get_nowait()
-            #     self.COORDINATES = coords
-            # except queue_Empty as e:
-            #     pass
+            # print(self.EMERGENCY, end='\t')
 
             # I don't think we can grab these variables this way
-            #self.COORDINATES = ips.latitude, ips.longitude
+            # self.COORDINATES = ips.latitude, ips.longitude
             self.COORDINATES = abs(self.lat.value), abs(self.lon.value)
 
             self.RouteTick()
-            #print(self.state)
+            # print(self.state)
 
     def RouteActions(self):
         # actions to take in each state
@@ -150,7 +144,7 @@ class RouteManager(object):
                 self.action_Taken = True
             G_angle = self.calc_GPS_angle()
             print(G_angle)
-            # TODO: mix GPS into this
+            # mix GPS angle calculation into this
             if abs(G_angle) > 42:
                 self.asyncDrive.LaneFollow(self.angle)
             else:
@@ -162,7 +156,6 @@ class RouteManager(object):
             if self.action_Taken == False:
                 self.asyncDrive.clear()
                 self.asyncDrive.start_LaneFollowing()
-                # self.asyncDrive.setPID(.9,.0015,.9)
                 self.asyncDrive.setPID(.9, .0015, 0.9)
                 print('Starting Lane Following')
                 self.action_Taken = True
@@ -216,8 +209,8 @@ class RouteManager(object):
             pass
 
     def routePlan(self):
-        # based on the current location, find the next stop line
-        #print(self.COORDINATES)
+        """Based on the current location, find the next stop line."""
+        # print(self.COORDINATES)
         # find the path to the next critical waypoint
         # use that data to determine the turn
         self.last_dist = 0
@@ -268,7 +261,6 @@ class RouteManager(object):
         # figure out the point where the GPS turn is supposed to start and stop
         print("Going from {} to {} turning {}".format(old_name, self.name, nextTurn))
         turnStartPt = self.ips.getTurningPt(old_name, nextTurn)
-        # crossoverPt = self.ips.getCrossoverPt(self.name)
         straightPt = self.ips.getStraightPt(self.name)
         # print(" - The crossover point is {} - ".format(crossoverPt))
         # recalculate the full path from current location to the next stop line
@@ -338,32 +330,29 @@ class RouteManager(object):
 
     def inRangeOfStopLine(self):
         """Are we in range of the next stop line? This is the last element in the current path list."""
-        # w, h, dist = self.ips.findClosestGraphPoint(*self.COORDINATES, getDist=True)
         w, h = self.COORDINATES
         targetPt = self.current_path[-1]
         dist = sqrt(pow(w - targetPt[0], 2) + pow(h - targetPt[1], 2))
-        #self.current_path = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-        
+
         # check if the car is not following the current path
         dist_change = self.last_dist - dist
-        #wrong_direction_thres = 1
-        if (dist_change < 0) and (dist_change < self.last_dist_change):
+        # wrong_direction_thres = 1
+        # if (dist_change < 0) and (dist_change < self.last_dist_change):
             # Recalculate the current path
-            pass
-            #path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
-            #if self.name is "stopLine5" and name2 is "stopLine3":
+            # path2, name2 = self.ips.findNextStopLine(self.COORDINATES[0],self.COORDINATES[1])
+            # if self.name is "stopLine5" and name2 is "stopLine3":
             #    return False
-            #self.current_path = path2
-            #self.name = name2
-            #print(self.current_path,self.name)
+            # self.current_path = path2
+            # self.name = name2
+            # print(self.current_path,self.name)
         self.last_dist = dist
         self.last_dist_change = dist_change
 
-        #route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
-        #Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
+        # route, stopname = self.ips.findNextStopLine(self.COORDINATES[0], self.COORDINATES[1])
+        # Print("{}, {}; {} < {} ?".format(route, stopname, dist, threshDist))
         print("{} < {} ?".format( dist, self.threshDist))
         print("comparing {} to {}".format((w, h), targetPt))
-        #print('####################################### ' + str(len(route)))
+        # print('####################################### ' + str(len(route)))
 
         # if the node is the close one, and within a distance
         
@@ -372,9 +361,6 @@ class RouteManager(object):
             print("!!!!!!!!!!!!!!!!!!!!!!! STOP !!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             return True
 
-        # print(self.COORDINATES)
-        # if len(route) == 1:
-        #     return True
         return False
 
     def TerminateGPS(self):
@@ -393,9 +379,11 @@ class RouteManager(object):
         return False
 
     def emergencyStop(self):
+        """Do we need to stop for an obstacle?"""
         return self.EMERGENCY
 
     def crosswalk(self):
+        """Did we detect a crosswalk?"""
         self.crossdeque.append(self.CROSSWALK)
 
         if np_sum(list(self.crossdeque)[19:29]) > 8:
@@ -415,14 +403,15 @@ class RouteManager(object):
             print(tup)
             print(self.current_path)
             indx = 0
-        #print(indx)
+        # print(indx)
         if indx is None:
             print('Could Not find Car')
             return 0
-        #print(indx)
+        # print(indx)
         return indx
 
     def gen_arc(self, head, radius, coordinates):
+        """Create an arc of points ahead of the car's current location."""
         arcCount = 20
         pheads = np_linspace(head - 60, head + 60, num=arcCount)
         # print(pheads)
@@ -434,8 +423,8 @@ class RouteManager(object):
         return pcoords, pheads
 
 
-
     def heading_diff(self, heading1, heading2):
+        """Calculate the absolute difference between two headings."""
         # heading1 - heading2 
         #(fix 359 - 1 = 358 to 359 - 1 = -2)
         #(fix 1 - 359 - -358 to 1 - 359 = 2)
@@ -538,7 +527,7 @@ class RouteManager(object):
         # heading_offset = self.find_look_ahead(avgHead, 100)
         # find the heading the car should be at
         nexthead = ips.findAbsoluteHeading(self.COORDINATES, n2)
-        # #dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
+        # dist = sqrt(pow(self.COORDINATES[0] - n1[0], 2) + pow(self.COORDINATES[1] - n1[1], 2))
         #
         heading_offset = self.heading_diff(nexthead, avgHead)
         # print(list(self.heading_hist))
@@ -629,6 +618,7 @@ class RouteManager(object):
                 self.action_Taken = False
                 self.state = self.States["Stop"]
 
+            # No longer stop the car at critical waypoints
             # elif self.inRangeOfCritWaypoint():
             #     self.action_Taken = False
             #     self.state = self.States["Crit_wp_stop"]
@@ -704,8 +694,9 @@ class RouteManager(object):
                 else:
                     self.state = self.nextTurn
 
-                #quiting GPS turns for now
-                #self.state = self.States["GPS_Follow"]
+                # quiting GPS turns for now
+                # self.state = self.States["GPS_Follow"]
+
             # debugging YOLO detector                                                                                                                                    
             print("\n\n==========================================================")                                                                                      
             print("Yolo detected green: {}".format(self.greenFlag.value))                                                                                                

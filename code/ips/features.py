@@ -147,20 +147,6 @@ graphStopLines = {
     "546,620"   : "stopLine7",      # actual (544, 622)
 }
 
-# points are labeled based on the next stop line in the directed graph
-# in other words, if you keep following from where the point is, the next
-# stop line to be hit is the one associated with the point
-graphCrossoverPts = {
-    "609,650"   : "stopLine0",
-    "347,579"   : "stopLine1",
-    "587,919"   : "stopLine2",
-    "306,871"   : "stopLine3",
-    "171,216"   : "stopLine4",
-    "704,1475"  : "stopLine5",
-    "894,1338"  : "stopLine6",
-    "379,97"    : "stopLine7",
-}
-
 # points are labeled based on the stop line they immediately follow
 graphTurningPts = {
     "282,29"    : "stopLine0",
@@ -177,7 +163,9 @@ graphTurningPtsComplex = {
     "stopLine7" : ["496,673", "474,690", "504,659"],
 }
 
-# labeled same as crossover points
+# points are labeled based on the next stop line in the directed graph
+# in other words, if you keep following from where the point is, the next
+# stop line to be hit is the one associated with the point
 graphStraightPts = {
     "583,676"   : "stopLine0",
     "363,597"   : "stopLine1",
@@ -196,13 +184,6 @@ def getStopLineCoordinates(name):
         if n == name:
             return p
     
-    return None
-
-def getCrossoverPt(name):
-    for p, n in graphCrossoverPts.items():
-        if n == name:
-            return p
-
     return None
 
 def getTurningPt(name, direction):

@@ -9,7 +9,7 @@ q1 = mp.Queue(10)
 q2 = fmq.Queue(10)
 q3 = queue.Queue(10)
 
-# uncomment thie line to switch the order
+# uncomment this line to switch the order
 # q1, q2 = q2, q1
 
 a = np.zeros((50, 256, 256, 3))
@@ -38,3 +38,6 @@ for i in range(5):
     b = q3.get()
     print('queue get() a time', time() - st)
 
+
+if __name__ == '__main__':
+    print("\n !!! This is a test file that was never used in the final code base. !!!\n")

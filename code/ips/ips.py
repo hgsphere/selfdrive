@@ -113,7 +113,7 @@ def findAbsoluteHeading(pt0, pt1):
 def computeTurnDirection(nodes):
     """Compute which direction to turn.  Accepts a slice of the path, only 3 nodes needed."""
     if len(nodes) != 5:
-        print("Takes exactly 3 nodes")
+        print("Takes exactly 5 nodes")
         raise IndexError
     n0 = nodes[0]
     n1 = nodes[1]
@@ -189,23 +189,21 @@ def getCurrentCoor(color="Yellow"):
 
     return lat, lon
 
-#def pollCoordinates(ips_routeManagerQ):
 def pollCoordinates(lat, lon, debug=False):
-    #global latitude, longitude
+    # global latitude, longitude
 
     while True:
-        #beforeTime = time_perf_counter()
+        # beforeTime = time_perf_counter()
         _lat, _lon = getCurrentCoor()
         lat.value = _lat
         lon.value = _lon
         time_sleep(0.04)
-        #afterTime = time_perf_counter()
+        # afterTime = time_perf_counter()
         if debug:
             print("latitude: {}, longitude: {}".format(_lat, _lon))
-            #print("diff time = {}".format(afterTime - beforeTime))
-        #latitude = lat
-        #longitude = lon
-        # ips_routeManagerQ.put_nowait(coords)
+            # print("diff time = {}".format(afterTime - beforeTime))
+        # latitude = lat
+        # longitude = lon
 
 
 class IPS(object):
@@ -316,16 +314,6 @@ class IPS(object):
         # convert to int
         pathInt = [decodePtName(n) for n in path]
         return pathInt
-
-    def getCrossoverPt(self, name):
-        """Find the the point in the path that is where the car
-
-        should cross over from GPS turning to lane following again.
-        Input is the name of the destination stopline.
-        Output is the crossover point.
-        """
-
-        return features.getCrossoverPt(name)
 
     def getTurningPt(self, name, direction):
         """Find the point in the path where the car should start turning.

@@ -12,8 +12,8 @@ HISTORY_FILE = 'command_history.txt'
 
 # List of Default calibration values
 DEFAULT_STRAIGHT = 1560
-DEFUALT_START = 1660#1685
-DEFUALT_SPEED = 0.6 #0.8
+DEFUALT_START = 1660    # previously 1685
+DEFUALT_SPEED = 0.6     # previously 0.8
 DEFAULT_PID = 0 
 DEFAULT_KP = 0.01
 DEFAULT_KD = 0.01
@@ -22,13 +22,13 @@ DEFAULT_KD = 0.01
 # List of Useful driving values
 SPEED_STOP = 0
 SPEED_GO = .7
-SPEED_SLOW = .18 #.10   # 0.3 # min speed
+SPEED_SLOW = .18        # previously .10 and 0.3
 STEER_STRAIGHT = 0
 STEER_RIGHT = 25
 STEER_LEFT = -18
 TEST_DELAY = 3
-FULL_TURN_DELAY = 1.6#1.7
-HALF_TURN_DELAY = 1.4#1.7
+FULL_TURN_DELAY = 1.6   # previously 1.7
+HALF_TURN_DELAY = 1.4   # previously 1.7
 INIT_DELAY = 1
 
 class control:

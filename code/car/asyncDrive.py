@@ -37,12 +37,7 @@ class asyncDrive:
         self.m = 0
         self.c = 0
         self.initval = True
-        # self.pid = PID(1,0,1.25)
-        # self.pid = PID(1,.0075,.75)
-        #self.pid = PID(.9,.002,.45)
-        #self.pid = PID(.4,.0075,.7) ok with 600 I clip
-        #self.pid = PID(.9,.06,.5) great clip I 30
-        self.pid = PID(.9,.002,.9) # .9 .0015 .9 worked previously
+        self.pid = PID(.9, .002, .9)
 
 
     def setPID(self,kp,ki,kd):
@@ -118,44 +113,27 @@ class asyncDrive:
 
     def filter_angles(self):
         # returns filtered angle decision
-        # data = np_array(self.angles)
         data = [x if (x <= 30) else 30 for x in list(self.angles)]
         data = [x if (x >= -30) else -30 for x in list(data)]
-        #data = self.angles
-        #kf = KalmanFilter(initial_state_mean=np_mean(list(data)),initial_state_covariance=np_cov(list(data)),n_dim_obs=1)
-        kf = KalmanFilter(initial_state_mean=np_mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)#0.61,n_dim_obs=1)
+        kf = KalmanFilter(initial_state_mean=np_mean(list(data)[0:10]),initial_state_covariance=0.61,n_dim_obs=1)
         means, covs = kf.filter(list(data))
-        #estimate = means[14][0]
+
         self.m = means[0][0] #np_mean([means[i][0] for i in range(9,19)])
         self.c = covs[0][0] #np_mean([covs[i][0] for i in range(9,19)])
-        #diff = np_mean(np_diff(means,axis=0))*20
+
         # print(list(data))
         # print(means)
-        #print(covs)
+        # print(covs)
         # print(np_diff(means,axis=0))
         # print(diff)
         # print(list(data)[4:7])
         # print(np_cov(data))
-        #frame_delay = self.estimate_frame_offest()
-        #print(frame_delay) 
-        #if frame_delay == 0:
-        #    df = 27
-        #elif frame_delay > 27:
-        #    df = 2
-        #else:
-        #    df = 30 - frame_delay - 3
 
-        #if df < 20:
-        #    df = 20
         df = 18
         avg = np_mean([means[i][0] for i in range(df-1,df+1)])
-        # print("here")
-        # print(avg)
-        # print("here_after")
         #mm = round(np_mean(list(data)[4:7]),2)
         # print(mm)
-        # estimate = estimate if (estimate <=30) else 30
-        # estimate = estimate if (estimate >= -30) else -30
+
         return round(avg, 0)
 
     def bin_angle(self,angle):

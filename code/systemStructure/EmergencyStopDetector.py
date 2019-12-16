@@ -30,34 +30,36 @@ class EmergencyStopDetector(object):
             print("Error in Emergency Stop Detector!")
             print(e)
 
-    def maskImage(self, img): #424(x) 240(y)
+    def maskImage(self, img):
+        """Image is 424 (x) by 240 (y)"""
         # width = img.shape[1]
         # height = img.shape[0]
-        #print(img.shape)
+        # print(img.shape)
 
-        x0 = 160 #150
-        x1 = 330 #340
+        x0 = 160    # previously 150
+        x1 = 330    # previously 340
 
-        y0 = 120 #90
-        y1 = 190 #210
+        y0 = 120    # previously 90
+        y1 = 190    # previously 210
 
+        # original calculation
+        # roi = img[y0:y1, x0:x1]
+
+        # striped box
         # roi = np_asanyarray(img[y0:y1, x0:x1], dtype="uint16")
         # rowNumbers = np_linspace(0, roi.shape[0]-1, num=5, dtype="uint16")
         # print(rowNumbers)
         # roiRowSample = roi[rowNumbers]
+        # return roiRowSample
 
-        # fast ROI calculation
+        # faster striped ROI calculation
         stripes = np_linspace(y0, y1, num=5, dtype="uint16")
         roi = np_asanyarray(img[stripes, x0:x1])
 
-        # roi = img[y0:y1, x0:x1]
-        # return roiRowSample
         return roi
 
     def checkForCloseObject(self, depthFrame):
-        #print(depthFrame.shape)
         count = len((np_where(depthFrame < self.pixel_threshold))[0])
-        #print(count)
         print("num values above threshold: {}".format(count))
         # print("min value = {}".format(depthFrame.min()))
         # return depthFrame.max() < self.threshold

@@ -221,10 +221,8 @@ def getLinesPoints(img, lines, debug=False, lineCnt=2):
     GREEN = (0, 255, 0)
 
     for p0, p1 in lanes:
-        # OverflowError: signed integer is greater than maximum ###################### TODO
-        # Im just gonna skip this for now
         pass
-        cv_line(imgColor, p0, p1, GREEN, 3)
+        # cv_line(imgColor, p0, p1, GREEN, 3)
 
     # displayImage("lanes", imgColor)
     if debug:
@@ -250,7 +248,6 @@ def getContours(canny):
     # get the average
     mean = np_mean([c.getArea() for c in contours2])
 
-    # sd = np_std([c.getArea() for c in contours2])
     if len(contours2) > 4:
         # accept anything above the mean
         contours3 = [c for c in contours2 if c.getArea() > mean]

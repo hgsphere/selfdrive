@@ -92,8 +92,6 @@ class Pollers(object):
             # print("pre process depth data")
             # depthFloat = self.processDepthFrame(depthData, depth.width, depth.height)
 
-            # logger.error('Here I am')
-
             return colorData, depthData
 
         except Exception as e:

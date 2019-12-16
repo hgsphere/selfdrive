@@ -77,10 +77,6 @@ def findContours(img):
 
     areas = [c.getArea() for c in contours2]
     meanArea = np_mean(areas)
-    # if len(contours2) > 4:
-    #     # accept anything above the mean
-    #     contours3 = [c for c in contours2 if c.getArea() > mean]
-    # else:
     contours3 = [c for c in contours2 if c.getArea() > 2000]
 
     # get rid of anything with the wrong shape

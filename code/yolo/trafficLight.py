@@ -47,7 +47,6 @@ class trafficLightDetector(object):
             self.video_writer.release()
 
     def init_video_writer(self):
-        # shape_rgb = (416, 235)
         shape_rgb = (282, 282)
         # self.y_offset = (416 - 235) // 2
         frame_rate_rgb = 3
@@ -206,17 +205,6 @@ class trafficLightDetector(object):
         kSz = 7
         area = box.shape[0] * box.shape[1]
 
-        # hsv stuff:
-        # hsv_lower_green = np_array([120, 100, 47.1], dtype=np_uint8)
-        # hsv_upper_green = np_array([116, 64.7, 100], dtype=np_uint8)
-        # hsv_mask_green = cv_inRange(box, hsv_lower_green, hsv_upper_green)
-        # hsv_blur_green = cv_GaussianBlur(hsv_mask_green, (kSz, kSz), 0)
-        # hsv_px_count = len((np_where(hsv_blur_green > 0))[0])
-        # if hsv_px_count > (area / 8):
-        #     return "green"
-        # else:
-        #     return "red"
-
         # rgb stuff:
         lower_green = np_array([0, 0, 0], dtype=np_uint8)
         upper_green = np_array([100, 255, 5], dtype=np_uint8)
@@ -238,39 +226,6 @@ class trafficLightDetector(object):
         else:
             return "red"
 
-        # looking for the brightest light
-        # gray = cv2.cvtColor(box, cv2.COLOR_BGR2GRAY)
-        # radius = 7
-        # kSz = 7
-        # # blur to make it more robust
-        # blur = cv2.GaussianBlur(gray, (radius, radius), 0)
-        #
-        # lightThreshold = 200
-        # # avgVal = np.average(blur)
-        # # find the coordinates of the brightest pixel
-        # (minVal, maxVal, minLoc, maxLoc) = cv2.minMaxLoc(blur)
-        #
-        # # print("yolo average value in bounding box =1 {}".format(avgVal))
-        # # print("yolo max value = {}".format(maxVal))
-        #
-        # # if the average value is below a threshold, then don't do detection
-        # if maxVal < lightThreshold:
-        #     return "red"
-        #
-        # # display
-        # # image = box.copy()
-        # # cv2.circle(image, maxLoc, radius, (255, 0, 0), 2)
-        # # cv2.imshow("spot", image)
-        # # cv2.waitKey(0)
-        #
-        # # look at the bottom quarter of the image
-        # # this can be adjusted as needed
-        # threshold = height * (3.0/4.0)
-        # if maxLoc[1] > threshold:
-        #     return "green"
-        # else:
-        #     return "red"
-
 
     def detectTrafficLight(self, frame):
         # can read frames from paths
@@ -280,18 +235,10 @@ class trafficLightDetector(object):
         # get the bounding box
         return self.runYolo(frame)
 
-        # if boxSlice is not None:
-        #     # look for a color
-        #     return self.detectColor(boxSlice)
-        # else:
-        #     return "red"
-
 
 def runYoloDetector(yolo_pipe, readyFlag, greenFlag, stop_now_flag, resetFlag):
     pipe_output, pipe_input = yolo_pipe
     pipe_input.close()      # only reading
-
-    # TODO: check that environment variable is set correctly
 
     readyFlag.value = 1
 
